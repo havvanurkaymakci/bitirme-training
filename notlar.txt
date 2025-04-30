@@ -1,0 +1,4 @@
+admin bilgileri 
+mail: admin@gmail.com
+username: adminuser 
+password: WebPage123
