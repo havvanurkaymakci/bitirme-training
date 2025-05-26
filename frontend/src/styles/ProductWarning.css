@@ -1,0 +1,395 @@
+/* ProductWarnings.css */
+.product-warnings-container {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  margin-top: 20px;
+}
+
+.product-warnings-container h2 {
+  color: #2c3e50;
+  margin-bottom: 25px;
+  font-size: 1.8rem;
+  border-bottom: 3px solid #3498db;
+  padding-bottom: 10px;
+}
+
+.no-warnings {
+  padding: 30px;
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  border-radius: 12px;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.no-warnings p {
+  color: white;
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.warnings-section {
+  margin-bottom: 30px;
+}
+
+.warnings-section h3 {
+  color: #e74c3c;
+  font-size: 1.4rem;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.warning-item {
+  margin-bottom: 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+  border-left: 6px solid;
+  transition: transform 0.3s ease;
+}
+
+.warning-item:hover {
+  transform: translateX(5px);
+}
+
+.severity-critical {
+  border-left-color: #c0392b;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+}
+
+.severity-high {
+  border-left-color: #e67e22;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: white;
+}
+
+.severity-medium {
+  border-left-color: #f1c40f;
+  background: linear-gradient(135deg, #f39c12, #d68910);
+  color: white;
+}
+
+.severity-low {
+  border-left-color: #3498db;
+  background: linear-gradient(135deg, #5dade2, #3498db);
+  color: white;
+}
+
+.warning-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.warning-header h4 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.severity-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.warning-message {
+  padding: 0 25px;
+  margin: 15px 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.warning-details {
+  padding: 0 25px 20px;
+  font-size: 14px;
+  opacity: 0.9;
+  font-style: italic;
+  margin: 0;
+}
+
+.recommendations-section {
+  margin-top: 30px;
+}
+
+.recommendations-section h3 {
+  color: #27ae60;
+  font-size: 1.4rem;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.recommendation-item {
+  margin-bottom: 20px;
+  padding: 25px;
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  border-radius: 12px;
+  box-shadow: 0 3px 15px rgba(46, 204, 113, 0.3);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.recommendation-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 25px rgba(46, 204, 113, 0.4);
+}
+
+.recommendation-item h4 {
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.recommendation-message {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.recommendation-details {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+  font-style: italic;
+}
+
+/* Özel uyarı türleri için ikonlar */
+.warning-item[class*="severity-critical"]::before {
+  content: "🚨";
+  position: absolute;
+  left: -35px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 24px;
+  animation: pulse 2s infinite;
+}
+
+.recommendation-item::before {
+  content: "✨";
+  position: absolute;
+  left: -35px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 24px;
+  animation: sparkle 3s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes sparkle {
+  0%, 100% { transform: translateY(-50%) scale(1); }
+  50% { transform: translateY(-50%) scale(1.1); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .product-warnings-container {
+    padding: 20px;
+    margin-top: 20px;
+  }
+
+  .product-warnings-container h2 {
+    font-size: 1.5rem;
+  }
+
+  .warnings-section h3,
+  .recommendations-section h3 {
+    font-size: 1.2rem;
+  }
+
+  .warning-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .warning-header h4 {
+    font-size: 1.1rem;
+  }
+
+  .severity-badge {
+    align-self: flex-end;
+  }
+
+  .warning-message,
+  .recommendation-message {
+    font-size: 15px;
+  }
+
+  .warning-details,
+  .recommendation-details {
+    font-size: 13px;
+  }
+
+  .warning-item,
+  .recommendation-item {
+    position: relative;
+  }
+
+  .warning-item::before,
+  .recommendation-item::before {
+    left: 10px;
+    top: 15px;
+    transform: none;
+    font-size: 20px;
+  }
+
+  .warning-header {
+    padding-left: 45px;
+  }
+
+  .warning-message,
+  .warning-details {
+    padding-left: 45px;
+  }
+}
+
+/* Animasyonlar */
+.warning-item,
+.recommendation-item {
+  animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading durumu için stil */
+.loading-indicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  color: #7f8c8d;
+  font-size: 16px;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #ecf0f1;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Ek özelleştirmeler */
+.severity-critical .warning-header::before {
+  content: "⚠️";
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.severity-high .warning-header::before {
+  content: "⚡";
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.severity-medium .warning-header::before {
+  content: "⚠️";
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.severity-low .warning-header::before {
+  content: "ℹ️";
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+/* Hover efektleri için ek detaylar */
+.warning-item:hover .severity-badge {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
+.recommendation-item:hover h4 {
+  transform: translateX(5px);
+  transition: transform 0.2s ease;
+}
+
+/* Erişilebilirlik için focus durumu */
+.warning-item:focus,
+.recommendation-item:focus {
+  outline: 3px solid #74b9ff;
+  outline-offset: 2px;
+}
+
+/* Özel mesaj türleri için stiller */
+.allergen-warning {
+  border-left-color: #fd79a8 !important;
+  background: linear-gradient(135deg, #fd79a8, #e84393) !important;
+}
+
+.dietary-warning {
+  border-left-color: #fdcb6e !important;
+  background: linear-gradient(135deg, #fdcb6e, #e17055) !important;
+}
+
+.health-warning {
+  border-left-color: #fd79a8 !important;
+  background: linear-gradient(135deg, #fd79a8, #e84393) !important;
+}
+
+/* Genel görsel iyileştirmeler */
+.product-warnings-container {
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.warning-item,
+.recommendation-item {
+  backdrop-filter: blur(5px);
+}
+
+/* Print stili */
+@media print {
+  .product-warnings-container {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+  
+  .warning-item,
+  .recommendation-item {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+  
+  .warning-item::before,
+  .recommendation-item::before,
+  .warning-header::before {
+    display: none;
+  }
+}

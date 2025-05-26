@@ -1,0 +1,600 @@
+/* ProductDetail.css */
+.product-detail-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 120px 20px 40px;
+  font-family: 'Arial', sans-serif;
+}
+
+.product-detail-header {
+  margin-bottom: 30px;
+}
+
+.back-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.back-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.error-message {
+  text-align: center;
+  padding: 40px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+}
+
+.error-message h2 {
+  color: #e74c3c;
+  margin-bottom: 20px;
+}
+
+.product-detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.product-basic-info {
+  display: flex;
+  gap: 30px;
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+}
+
+.product-image-section {
+  flex: 0 0 300px;
+}
+
+.product-detail-image {
+  width: 100%;
+  height: 300px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.product-info-section {
+  flex: 1;
+}
+
+.product-title {
+  font-size: 2rem;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.product-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.product-meta p {
+  margin: 0;
+  font-size: 16px;
+  color: #34495e;
+}
+
+.product-meta strong {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.nutri-score {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  margin-left: 10px;
+  text-transform: uppercase;
+}
+
+.grade-a { background: #2ecc71; color: white; }
+.grade-b { background: #f39c12; color: white; }
+.grade-c { background: #e67e22; color: white; }
+.grade-d { background: #e74c3c; color: white; }
+.grade-e { background: #8b0000; color: white; }
+
+.nutrition-section {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+}
+
+.nutrition-section h2 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+}
+
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.nutrition-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #3498db;
+}
+
+.nutrition-label {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.nutrition-value {
+  font-weight: 500;
+  color: #e74c3c;
+}
+
+.ingredients-section {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+}
+
+.ingredients-section h2,
+.ingredients-section h3 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+}
+
+.ingredients-text {
+  line-height: 1.6;
+  color: #34495e;
+  margin-bottom: 25px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #3498db;
+}
+
+.allergens-section,
+.additives-section {
+  margin-top: 25px;
+}
+
+.allergens-list,
+.additives-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.allergen-tag,
+.additive-tag {
+  background: #e74c3c;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.additive-tag {
+  background: #f39c12;
+}
+
+.auth-required-section {
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.auth-required-section h2 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+}
+
+.auth-required-section p {
+  color: #7f8c8d;
+  margin-bottom: 25px;
+  font-size: 16px;
+}
+
+.login-button {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+}
+
+.loading-section {
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.loading-section p {
+  color: #7f8c8d;
+  font-size: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .product-detail-container {
+    padding: 100px 15px 20px;
+  }
+
+  .product-basic-info {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .product-image-section {
+    flex: none;
+  }
+
+  .product-detail-image {
+    height: 250px;
+  }
+
+  .product-title {
+    font-size: 1.5rem;
+  }
+
+  .nutrition-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .allergens-list,
+  .additives-list {
+    justify-content: center;
+  }
+}
+
+/* Mevcut CSS'inizin altına ekleyin */
+
+/* Uyarılar Bölümü */
+.warnings-section {
+  margin: 2rem 0;
+  padding: 1rem;
+  background-color: #fff5f5;
+  border-radius: 8px;
+  border-left: 4px solid #f56565;
+}
+
+.warnings-section h2 {
+  color: #c53030;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.warning-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid #f56565;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease;
+}
+
+.warning-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.warning-card.severity-critical {
+  border-left-color: #e53e3e;
+  background-color: #fed7d7;
+}
+
+.warning-card.severity-high {
+  border-left-color: #f56565;
+  background-color: #fee2e2;
+}
+
+.warning-card.severity-medium {
+  border-left-color: #ed8936;
+  background-color: #fef5e7;
+}
+
+.warning-card.severity-low {
+  border-left-color: #ecc94b;
+  background-color: #fefcbf;
+}
+
+.warning-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.warning-header h3 {
+  margin: 0;
+  color: #2d3748;
+  font-size: 1.1rem;
+}
+
+.severity-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.severity-badge.critical {
+  background-color: #e53e3e;
+  color: white;
+}
+
+.severity-badge.high {
+  background-color: #f56565;
+  color: white;
+}
+
+.severity-badge.medium {
+  background-color: #ed8936;
+  color: white;
+}
+
+.severity-badge.low {
+  background-color: #ecc94b;
+  color: #2d3748;
+}
+
+.warning-message {
+  font-weight: 500;
+  color: #2d3748;
+  margin: 0.5rem 0;
+}
+
+.warning-details {
+  font-size: 0.9rem;
+  color: #4a5568;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Öneriler Bölümü */
+.recommendations-section {
+  margin: 2rem 0;
+  padding: 1rem;
+  background-color: #f0fff4;
+  border-radius: 8px;
+  border-left: 4px solid #48bb78;
+}
+
+.recommendations-section h2 {
+  color: #2f855a;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.recommendation-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid #48bb78;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease;
+}
+
+.recommendation-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.recommendation-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: #2f855a;
+  font-size: 1.1rem;
+}
+
+.recommendation-message {
+  font-weight: 500;
+  color: #2d3748;
+  margin: 0.5rem 0;
+}
+
+.recommendation-details {
+  font-size: 0.9rem;
+  color: #4a5568;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Uyarı Yok Bölümü */
+.no-warnings-section {
+  margin: 2rem 0;
+  padding: 2rem;
+  background-color: #f0fff4;
+  border-radius: 8px;
+  text-align: center;
+  border: 2px solid #48bb78;
+}
+
+.no-warnings-section h2 {
+  color: #2f855a;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.no-warnings-section p {
+  color: #2d3748;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .warning-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .severity-badge {
+    align-self: flex-start;
+  }
+  
+  .warnings-section,
+  .recommendations-section {
+    padding: 0.75rem;
+    margin: 1rem 0;
+  }
+  
+  .warning-card,
+  .recommendation-card {
+    padding: 0.75rem;
+  }
+}
+
+.analysis-loading {
+  text-align: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.analysis-error {
+  background: #fee;
+  border: 1px solid #fcc;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.retry-button, .reanalyze-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.suitability-section {
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.suitability-section.suitable {
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+}
+
+.suitability-section.not-suitable {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+}
+
+.health-score {
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+.health-score.excellent { background: #28a745; color: white; }
+.health-score.good { background: #ffc107; color: black; }
+.health-score.fair { background: #fd7e14; color: white; }
+.health-score.poor { background: #dc3545; color: white; }
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.refresh-warnings-button {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.warning-recommendation {
+  margin-top: 10px;
+  padding: 10px;
+  background: #e9ecef;
+  border-radius: 4px;
+  font-style: italic;
+}
+
+.priority-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.priority-badge.high { background: #dc3545; color: white; }
+.priority-badge.medium { background: #ffc107; color: black; }
+.priority-badge.low { background: #28a745; color: white; }
+
+.nutritional-advice-section {
+  margin-top: 20px;
+}
+
+.advice-card {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  border-left: 4px solid #28a745;
+}
+
+.alternatives {
+  margin-top: 10px;
+}
+
+.alternatives ul {
+  margin: 5px 0;
+  padding-left: 20px;
+}
+
+.analysis-actions {
+  text-align: center;
+  margin-top: 30px;
+}

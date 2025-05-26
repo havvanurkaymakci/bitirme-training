@@ -1,0 +1,62 @@
+/* Kullanıcı profil kart yapısı */
+.user-profile-page-wrapper {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+  }
+  
+  /* Kart görünümü */
+  .card {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  }
+  
+  /* Profil fotoğrafı */
+  .card-body img {
+    border-radius: 50%;
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border: 3px solid #dee2e6;
+  }
+  
+  /* Bilgi satırı özel tasarım */
+  .profile-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  
+  .profile-info-label {
+    font-weight: 600;
+    color: #333;
+    width: 30%;
+    min-width: 100px;
+  }
+  
+  .profile-info-value {
+    color: #555;
+    width: 70%;
+    word-break: break-word;
+  }
+  
+  /* Hoş geldin mesajı */
+  .profile-welcome p {
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Butonlar */
+  .btn {
+    min-width: 120px;
+  }
+  
+  .form-content {
+    flex: 1;
+    padding: 3rem 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  

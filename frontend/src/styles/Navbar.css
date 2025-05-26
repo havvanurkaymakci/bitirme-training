@@ -1,0 +1,37 @@
+/* Navbar.css */
+
+.navbar-custom {
+  background-color: #f8f9fa; /* Açık gri/çok açık beyaz */
+  padding: 12px 40px; /* Yatayda biraz daha geniş */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.navbar-custom .navbar-brand img {
+  width: 140px; /* Logoyu biraz büyüttüm */
+  padding: 0;
+}
+
+.navbar-custom .nav-link {
+  color: #495057; /* Daha koyu gri */
+  font-weight: 600;
+  font-size: 1.2rem; /* Yazı boyutunu büyüttüm */
+  margin-right: 20px;
+  transition: color 0.3s ease;
+}
+
+.navbar-custom .nav-link:hover,
+.navbar-custom .nav-link.active {
+  color: #007bff; /* Bootstrap mavisi, hover için */
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.navbar-custom .navbar-toggler {
+  border: none;
+  outline: none;
+}
+
+.navbar-custom .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='%23495057' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+}

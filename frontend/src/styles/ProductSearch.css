@@ -1,0 +1,131 @@
+.product-search-container {
+  width: 60%;
+  margin: 0 auto;
+  padding: 25px 30px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+}
+
+/* Ürün Arama başlığı */
+.search-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  text-align: center;
+  color: #222;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Arama inputu */
+.search-input {
+  padding: 15px 20px;
+  width: 100%;
+  font-size: 1.25rem;
+  border-radius: 8px;
+  border: 1px solid #888;
+  margin-bottom: 30px;
+  box-sizing: border-box;
+  transition: border-color 0.3s;
+}
+
+.search-input:focus {
+  border-color: #007BFF;
+  outline: none;
+}
+
+/* Filtre başlığı */
+.filter-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #333;
+  border-bottom: 2px solid #007BFF;
+  padding-bottom: 5px;
+}
+
+/* Filtre inputları */
+.filters input[type="number"],
+.filters input[type="text"] {
+  margin: 6px 10px 15px 0;
+  padding: 8px 12px;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid #bbb;
+  width: 180px;
+  box-sizing: border-box;
+}
+
+/* Checkbox label hizalaması */
+.filters label {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 15px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* Buton */
+.search-button {
+  padding: 12px 25px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background-color: #007BFF;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: background-color 0.3s;
+  width: 150px; /* Buton genişliği */
+}
+
+.search-button:hover {
+  background-color: #0056b3;
+}
+
+.category-filters {
+  display: flex;
+  gap: 30px; /* Sütunlar arası boşluk */
+  flex-wrap: wrap; /* Küçük ekranlarda alt alta geçebilir */
+  margin-top: 10px;
+}
+
+.category-filters h3 {
+  flex-basis: 100%; /* Başlık tam genişlikte */
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+}
+
+.category-filters > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Her sütun eşit genişlikte */
+  min-width: 150px; /* Çok dar olmasını önlemek için */
+}
+
+.category-filters label {
+  margin-bottom: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.category-filters input[type="checkbox"] {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.click-hint {
+  margin-top: 10px;
+  color: #007BFF;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.click-hint:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}
