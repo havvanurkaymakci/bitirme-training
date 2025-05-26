@@ -12,5 +12,7 @@ urlpatterns = [
     path('profile/', views.getUserProfile, name='user_profile'), 
     path('profile/edit/', views.update_profile, name='edit_profile'),    path('test/', views.testEndPoint, name='test'),
     path('product-search/', views.search_product, name='product_search'),
+    path('analyze-product/', views.analyze_product_complete, name='analyze_product_complete'),
+    path('product-warnings/', views.get_product_warnings_only, name='product_warnings'),
     path('', views.getRoutes),
 ]

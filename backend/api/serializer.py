@@ -33,6 +33,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'full_name',
             'age', 'gender', 'height', 'weight', 'bmi', 
             'medical_conditions', 'allergies', 'dietary_preferences',
+            'activity_level', 'health_goals',  # Yeni alanlar eklendi
             'medical_conditions_display', 'allergies_display', 'dietary_preferences_display',
             'medical_conditions_choices', 'allergies_choices', 'dietary_preferences_choices'
         )
@@ -90,23 +91,50 @@ class ProfileSerializer(serializers.ModelSerializer):
             if preference not in valid_choices:
                 raise serializers.ValidationError(f"Invalid dietary preference: {preference}")
         return value
+    
+    # Yeni alanlar için validasyonlar
+    def validate_health_goals(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Health goals must be a list")
+        return value
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        token['full_name'] = user.profile.full_name
-        token['username'] = user.username
-        token['email'] = user.email
-        token['age'] = user.profile.age
-        token['gender'] = user.profile.gender
-        token['height'] = user.profile.height
-        token['weight'] = user.profile.weight
-        token['bmi'] = user.profile.bmi
-        token['medical_conditions'] = user.profile.medical_conditions
-        token['allergies'] = user.profile.allergies
-        token['dietary_preferences'] = user.profile.dietary_preferences
+        
+        # Profile yoksa hata almamak için try-except kullanın
+        try:
+            profile = user.profile
+            token['full_name'] = profile.full_name
+            token['username'] = user.username
+            token['email'] = user.email
+            token['age'] = profile.age
+            token['gender'] = profile.gender
+            token['height'] = profile.height
+            token['weight'] = profile.weight
+            token['bmi'] = profile.bmi
+            token['medical_conditions'] = profile.medical_conditions
+            token['allergies'] = profile.allergies
+            token['dietary_preferences'] = profile.dietary_preferences
+            token['activity_level'] = getattr(profile, 'activity_level', 'moderate')  # Yeni alan
+            token['health_goals'] = getattr(profile, 'health_goals', [])  # Yeni alan
+        except Profile.DoesNotExist:
+            # Profile yoksa varsayılan değerler
+            token['full_name'] = user.username
+            token['username'] = user.username
+            token['email'] = user.email
+            token['age'] = 18
+            token['gender'] = None
+            token['height'] = None
+            token['weight'] = None
+            token['bmi'] = None
+            token['medical_conditions'] = []
+            token['allergies'] = []
+            token['dietary_preferences'] = []
+            token['activity_level'] = 'moderate'
+            token['health_goals'] = []
         
         return token
 

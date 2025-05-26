@@ -110,6 +110,11 @@ class Profile(models.Model):
     medical_conditions = models.JSONField(default=list, blank=True)  # List of condition keys
     allergies = models.JSONField(default=list, blank=True)  # List of allergy keys
     dietary_preferences = models.JSONField(default=list, blank=True)  # List of dietary preference keys
+    
+    # Views.py'de kullanılan ekstra alanlar - bu alanlar yoksa ekleyin
+    activity_level = models.CharField(max_length=20, default='moderate', 
+                                    choices=[('low', 'Düşük'), ('moderate', 'Orta'), ('high', 'Yüksek')])
+    health_goals = models.JSONField(default=list, blank=True)  # List of health goals
 
     def save(self, *args, **kwargs):
         if self.weight and self.height:
