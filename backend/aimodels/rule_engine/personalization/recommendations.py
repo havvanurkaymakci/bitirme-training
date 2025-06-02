@@ -4,9 +4,9 @@ import logging
 import requests
 from dataclasses import dataclass
 from .alternative_engine import AlternativeEngine
-from .medical_warnings import MedicalAnalyzer
-from .dietary_warnings import DietaryAnalyzer
-from .allergy_warnings import AllergyAnalyzer
+from ..medical_warnings import MedicalAnalyzer
+from ..dietary_warnings import DietaryAnalyzer
+from ..allergy_warnings import AllergyAnalyzer
 
 logger = logging.getLogger(__name__)
 

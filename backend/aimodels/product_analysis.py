@@ -3,10 +3,10 @@ from dataclasses import dataclass, asdict
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import logging
-from .allergy_warnings import AllergyAnalyzer
-from .medical_warnings import MedicalAnalyzer
-from .dietary_warnings import DietaryAnalyzer
-from .recommendations import RecommendationEngine
+from .rule_engine.allergy_warnings import AllergyAnalyzer
+from .rule_engine.medical_warnings import MedicalAnalyzer
+from .rule_engine.dietary_warnings import DietaryAnalyzer
+from .rule_engine.personalization.recommendations import RecommendationEngine
 
 logger = logging.getLogger(__name__)
 

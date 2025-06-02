@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from api.models import User, Profile
-from api.serializer import MyTokenObtainPairSerializer, RegisterSerializer, ProfileSerializer
+from api.models.user_profile import User, Profile
+from api.serializers.profile_serializer import MyTokenObtainPairSerializer, RegisterSerializer, ProfileSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView

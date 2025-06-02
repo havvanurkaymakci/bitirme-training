@@ -1,0 +1,61 @@
+{
+  "timestamp": "2025-06-02 20:59:30",
+  "quality_report": {
+    "total_products": 839,
+    "valid_products": 812,
+    "validity_rate": 96.7818831942789,
+    "completeness_stats": {
+      "avg_completeness": 0.8568732618196265,
+      "min_completeness": 0.36666666666666664,
+      "max_completeness": 0.9999999999999999
+    },
+    "top_categories": [
+      {
+        "main_category": "unknown",
+        "count": 749
+      },
+      {
+        "main_category": "en:sugary-snacks",
+        "count": 27
+      },
+      {
+        "main_category": "en:plant-based-foods-and-beverages",
+        "count": 13
+      },
+      {
+        "main_category": "en:beverages",
+        "count": 10
+      },
+      {
+        "main_category": "en:meals",
+        "count": 9
+      },
+      {
+        "main_category": "en:dietary-supplements",
+        "count": 9
+      },
+      {
+        "main_category": "en:groceries",
+        "count": 4
+      },
+      {
+        "main_category": "en:dairies",
+        "count": 3
+      },
+      {
+        "main_category": "en:meats",
+        "count": 2
+      },
+      {
+        "main_category": "fr:boulange",
+        "count": 1
+      }
+    ],
+    "health_score_stats": {
+      "avg_health_score": 3.7982121573301613,
+      "min_health_score": 0.0,
+      "max_health_score": 8.0
+    },
+    "similarity_count": 37952
+  }
+}

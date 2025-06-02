@@ -41,8 +41,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-    # Custom
+    # Custom Apps
     'api',
+    'aimodels',
 
     # Third Party
     'import_export',
@@ -96,7 +97,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'Web-Page',
+        'NAME': 'bitirme-ml',
         'USER': 'postgres',
         'PASSWORD': 'admin123',
         'HOST': 'localhost',
@@ -123,14 +124,30 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Custom User Model
 AUTH_USER_MODEL = 'api.User'
 
+# REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.MultiPartParser',
+        'rest_framework.parsers.FileUploadParser',
+    ],
 }
 
+# JWT Configuration
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=50),
@@ -139,7 +156,6 @@ SIMPLE_JWT = {
     'UPDATE_LAST_LOGIN': False,
 
     'ALGORITHM': 'HS256',
-
     'VERIFYING_KEY': None,
     'AUDIENCE': None,
     'ISSUER': None,
@@ -163,24 +179,22 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
 
+# CORS Configuration
 CORS_ALLOW_ALL_ORIGINS = True
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
@@ -188,6 +202,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+# Custom Color Palette for CKEditor
 customColorPalette = [
     {"color": "hsl(4, 90%, 58%)", "label": "Red"},
     {"color": "hsl(340, 82%, 52%)", "label": "Pink"},
@@ -197,6 +212,7 @@ customColorPalette = [
     {"color": "hsl(207, 90%, 54%)", "label": "Blue"},
 ]
 
+# CKEditor 5 Configuration
 CKEDITOR_5_CONFIGS = {
     "default": {
         "toolbar": [
@@ -238,39 +254,14 @@ CKEDITOR_5_CONFIGS = {
             "blockQuote",
         ],
         "toolbar": [
-            # "heading",
-            # "codeBlock",
-            # "|",
-            
-            # "|",
             "bold",
             "italic",
-            # "link",
             "underline",
             "strikethrough",
-            # "code",
-            # "subscript",
-            # "superscript",
-            # "highlight",
             "|",
             "bulletedList",
-            # "numberedList",
-            # "todoList",
-            # "|",
-            # "outdent",
-            # "indent",
-            # "|",
-            # "blockQuote",
-            # "insertImage",
-            # "|",
-            # "fontSize",
-            # "fontFamily",
-            # "fontColor",
-            # "fontBackgroundColor",
-            # "mediaEmbed",
+            "|",
             "removeFormat",
-            # "insertTable",
-            # "sourceEditing",
         ],
         "image": {
             "toolbar": [
@@ -353,7 +344,7 @@ CKEDITOR_5_CONFIGS = {
 
 CKEDITOR_UPLOAD_PATH = 'uploads/'
 
-
+# Jazzmin Admin Interface Configuration
 JAZZMIN_SETTINGS = {
     "site_title": "Django & React JWT Authentication ",
     "welcome_sign": "Hey there...welcome back",
@@ -361,7 +352,6 @@ JAZZMIN_SETTINGS = {
     "site_brand": "Think | Create | Inspire",
     "copyright": "www.desphixs.com",
 }
-
 
 JAZZMIN_UI_TWEAKS = {
     "navbar_small_text": False,
