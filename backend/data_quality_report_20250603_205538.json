@@ -1,0 +1,60 @@
+{
+  "timestamp": "2025-06-03 20:55:38",
+  "quality_report": {
+    "total_products": 292804,
+    "valid_products": 284169,
+    "validity_rate": 97.0509282660073,
+    "completeness_stats": {
+      "avg_completeness": 0.8732603835098561,
+      "min_completeness": 0.3,
+      "max_completeness": 0.9999999999999999
+    },
+    "top_categories": [
+      {
+        "main_category": "",
+        "count": 211301
+      },
+      {
+        "main_category": "en:plant-based-foods-and-beverages",
+        "count": 18993
+      },
+      {
+        "main_category": "en:sugary-snacks",
+        "count": 11121
+      },
+      {
+        "main_category": "en:beverages",
+        "count": 8264
+      },
+      {
+        "main_category": "en:dairies",
+        "count": 7136
+      },
+      {
+        "main_category": "en:groceries",
+        "count": 4425
+      },
+      {
+        "main_category": "en:meats",
+        "count": 4209
+      },
+      {
+        "main_category": "en:fresh-foods",
+        "count": 3254
+      },
+      {
+        "main_category": "en:meals",
+        "count": 2680
+      },
+      {
+        "main_category": "en:salty-snacks",
+        "count": 2180
+      }
+    ],
+    "health_score_stats": {
+      "avg_health_score": 3.9839592355285864,
+      "min_health_score": 0.0,
+      "max_health_score": 8.0
+    }
+  }
+}

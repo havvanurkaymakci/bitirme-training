@@ -1,3 +1,4 @@
+
 from django.shortcuts import render
 from django.http import JsonResponse
 from api.models.user_profile import User, Profile
@@ -10,17 +11,18 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from django.core.cache import cache
-import requests
-from django.http import JsonResponse
-from aimodels.product_analysis import ProductAnalyzer
-import hashlib
-import json
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
@@ -35,9 +37,8 @@ def getRoutes(request):
         '/api/register/',
         '/api/token/refresh/',
         '/api/profile/',
-        '/api/analyze-product/',
-        '/api/product-warnings/',
-        '/api/search-product/',
+        '/api/test/',
+        '/api/profile/update/',
     ]
     return Response(routes)
 
@@ -45,6 +46,7 @@ def getRoutes(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def getUserProfile(request):
+    """Kullanıcı profil bilgilerini getir"""
     user = request.user
     try:
         profile = Profile.objects.get(user=user)
@@ -57,29 +59,94 @@ def getUserProfile(request):
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def testEndPoint(request):
+    """Test endpoint - hem GET hem POST isteklerini destekler"""
     if request.method == 'GET':
         data = f"Congratulation {request.user}, your API just responded to GET request"
         return Response({'response': data}, status=status.HTTP_200_OK)
     elif request.method == 'POST':
-        text = "Hello buddy"
+        text = request.data.get('text', 'Hello buddy')
         data = f'Congratulation your API just responded to POST request with text: {text}'
         return Response({'response': data}, status=status.HTTP_200_OK)
-    return Response({}, status.HTTP_400_BAD_REQUEST)
+    return Response({'error': 'Method not allowed'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def update_profile(request):
-    profile = request.user.profile
-    serializer = ProfileSerializer(profile, data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data)
-    return Response(serializer.errors, status=400)
+    """Kullanıcı profil bilgilerini güncelle"""
+    try:
+        # Kullanıcının profili var mı kontrol et
+        try:
+            profile = request.user.profile
+        except Profile.DoesNotExist:
+            # Profil yoksa oluştur
+            profile = Profile.objects.create(user=request.user)
+        
+        serializer = ProfileSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    except Exception as e:
+        logger.error(f"Profil güncelleme hatası: {str(e)}")
+        return Response({
+            'error': f'Profil güncellenirken hata oluştu: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def create_profile(request):
+    """Yeni kullanıcı profili oluştur"""
+    try:
+        # Kullanıcının zaten profili var mı kontrol et
+        if hasattr(request.user, 'profile'):
+            return Response({
+                'error': 'Kullanıcının zaten profili var'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Yeni profil oluştur
+        serializer = ProfileSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    except Exception as e:
+        logger.error(f"Profil oluşturma hatası: {str(e)}")
+        return Response({
+            'error': f'Profil oluşturulurken hata oluştu: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def delete_profile(request):
+    """Kullanıcı profilini sil"""
+    try:
+        profile = request.user.profile
+        profile.delete()
+        return Response({
+            'message': 'Profil başarıyla silindi'
+        }, status=status.HTTP_200_OK)
+        
+    except Profile.DoesNotExist:
+        return Response({
+            'error': 'Profil bulunamadı'
+        }, status=status.HTTP_404_NOT_FOUND)
+        
+    except Exception as e:
+        logger.error(f"Profil silme hatası: {str(e)}")
+        return Response({
+            'error': f'Profil silinirken hata oluştu: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 def get_user_profile_data(user):
-    """Kullanıcı profil verisini normalize et"""
+    """Kullanıcı profil verisini normalize et - diğer uygulamalar için helper"""
     try:
         user_profile = Profile.objects.get(user=user)
         return {
@@ -103,151 +170,94 @@ def get_user_profile_data(user):
         }
 
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def analyze_product_complete(request):
-    """
-    Ürünü kapsamlı analiz et - uyarılar, öneriler, sağlık skoru
-    """
-    try:
-        data = request.data
-        product_data = data.get('product_data')
-        
-        if not product_data:
-            return Response({
-                'error': 'Ürün verisi gerekli'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Kullanıcı profilini al
-        user_profile_data = get_user_profile_data(request.user)
-        
-        # Cache key oluştur
-        cache_key = f"product_analysis_{request.user.id}_{hashlib.md5(json.dumps(product_data, sort_keys=True).encode()).hexdigest()}"
-        
-        # Cache'den kontrol et
-        cached_result = cache.get(cache_key)
-        if cached_result:
-            return Response(cached_result, status=status.HTTP_200_OK)
-        
-        analyzer = ProductAnalyzer()
-        analysis_result = analyzer.analyze_product_complete(product_data, user_profile_data)
-        
-        # Sonucu cache'le (5 dakika)
-        cache.set(cache_key, analysis_result, 300)
-        
-        return Response(analysis_result, status=status.HTTP_200_OK)
-        
-    except Exception as e:
-        return Response({
-            'error': f'Analiz sırasında hata oluştu: {str(e)}'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def get_product_warnings_only(request):
-    """
-    Sadece uyarıları getir (daha hızlı)
-    """
-    try:
-        data = request.data
-        product_data = data.get('product_data')
-        
-        if not product_data:
-            return Response({
-                'error': 'Ürün verisi gerekli'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Kullanıcı profilini al
-        user_profile_data = get_user_profile_data(request.user)
-        
-        # Cache key oluştur (sadece uyarılar için)
-        cache_key = f"product_warnings_{request.user.id}_{hashlib.md5(json.dumps(product_data, sort_keys=True).encode()).hexdigest()}"
-        
-        # Cache'den kontrol et
-        cached_result = cache.get(cache_key)
-        if cached_result:
-            return Response(cached_result, status=status.HTTP_200_OK)
-        
-        analyzer = ProductAnalyzer()
-        warnings_result = analyzer.analyze_warnings_only(product_data, user_profile_data)
-        
-        # Sonucu cache'le (2 dakika)
-        cache.set(cache_key, warnings_result, 120)
-        
-        return Response(warnings_result, status=status.HTTP_200_OK)
-        
-    except Exception as e:
-        return Response({
-            'error': f'Uyarı analizi sırasında hata oluştu: {str(e)}'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 @api_view(['GET'])
-@permission_classes([AllowAny])
-def search_product(request):
-    """
-    OpenFoodFacts'ten ürün arama ve filtreleme
-    """
-    query = request.GET.get('query', '')
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def get_profile_stats(request):
+    """Profil istatistikleri - opsiyonel özellik"""
+    try:
+        profile = request.user.profile
+        
+        stats = {
+            'profile_completion': 0,
+            'last_updated': profile.updated_at if hasattr(profile, 'updated_at') else None,
+            'has_allergies': bool(profile.allergies),
+            'has_dietary_preferences': bool(profile.dietary_preferences),
+            'has_health_conditions': bool(profile.medical_conditions),
+            'has_age': bool(getattr(profile, 'age', None)),
+            'has_gender': bool(getattr(profile, 'gender', None)),
+        }
+        
+        # Profil tamamlanma yüzdesi hesapla
+        total_fields = 6
+        completed_fields = sum([
+            stats['has_allergies'],
+            stats['has_dietary_preferences'], 
+            stats['has_health_conditions'],
+            stats['has_age'],
+            stats['has_gender'],
+            bool(getattr(profile, 'activity_level', None))
+        ])
+        
+        stats['profile_completion'] = int((completed_fields / total_fields) * 100)
+        
+        return Response(stats, status=status.HTTP_200_OK)
+        
+    except Profile.DoesNotExist:
+        return Response({
+            'error': 'Profil bulunamadı'
+        }, status=status.HTTP_404_NOT_FOUND)
+        
+    except Exception as e:
+        logger.error(f"Profil istatistikleri hatası: {str(e)}")
+        return Response({
+            'error': f'İstatistikler alınırken hata oluştu: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    if not query:
-        return JsonResponse({'error': 'No query parameter provided'}, status=400)
 
-    # OpenFoodFacts API'den veri çek
-    url = f"https://world.openfoodfacts.org/cgi/search.pl?search_terms={query}&search_simple=1&action=process&json=1"
-    response = requests.get(url)
-
-    if response.status_code != 200:
-        return JsonResponse({'error': 'Failed to fetch data from OpenFoodFacts'}, status=500)
-
-    data = response.json()
-    products = data.get('products', [])
-
-    # ProductAnalyzer'dan filtre metodlarını kullan
-    analyzer = ProductAnalyzer()
-    filters = analyzer.parse_filter_params(request.GET.dict())
-    filtered_products = analyzer.apply_filters(products, filters) if filters else products
-
-    # Eğer kullanıcı login olmuşsa analiz ekle
-    if request.user.is_authenticated:
-        try:
-            user_profile_data = get_user_profile_data(request.user)
-            analyzed_products = []
-            
-            # İlk 10 ürün için hızlı analiz yap (performans için)
-            for product in filtered_products[:10]:
-                try:
-                    # Cache key oluştur
-                    cache_key = f"quick_analysis_{request.user.id}_{product.get('id', 'unknown')}"
-                    cached_analysis = cache.get(cache_key)
-                    
-                    if cached_analysis:
-                        product['analysis'] = cached_analysis
-                    else:
-                        # Hızlı analiz için sadece uyarıları al
-                        analysis = analyzer.analyze_warnings_only(product, user_profile_data)
-                        quick_analysis = {
-                            'warnings': analysis.get('warnings', [])[:3],  # İlk 3 uyarı
-                            'critical_issues': analysis.get('critical_issues', 0),
-                            'has_alerts': len(analysis.get('warnings', [])) > 0
-                        }
-                        cache.set(cache_key, quick_analysis, 300)
-                        product['analysis'] = quick_analysis
-                        
-                except Exception as e:
-                    product['analysis'] = {'error': f'Analiz hatası: {str(e)}'}
-                
-                analyzed_products.append(product)
-            
-            # Kalan ürünleri analiz olmadan ekle
-            analyzed_products.extend(filtered_products[10:])
-            
-            return JsonResponse({'products': analyzed_products}, safe=False)
-            
-        except Exception as e:
-            return JsonResponse({
-                'products': filtered_products,
-                'analysis_error': f'Analiz hatası: {str(e)}'
-            }, safe=False)
-    return JsonResponse({'products': filtered_products}, safe=False)
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def update_profile_field(request, field_name):
+    """Profil alanını tek tek güncelle"""
+    try:
+        profile = request.user.profile
+        
+        # İzin verilen alanları kontrol et
+        allowed_fields = [
+            'allergies', 'dietary_preferences', 'medical_conditions',
+            'age', 'gender', 'activity_level', 'health_goals'
+        ]
+        
+        if field_name not in allowed_fields:
+            return Response({
+                'error': f'Geçersiz alan: {field_name}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Yeni değeri al
+        new_value = request.data.get('value')
+        if new_value is None:
+            return Response({
+                'error': 'Değer gerekli'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Profili güncelle
+        setattr(profile, field_name, new_value)
+        profile.save()
+        
+        return Response({
+            'message': f'{field_name} başarıyla güncellendi',
+            'field': field_name,
+            'new_value': new_value
+        }, status=status.HTTP_200_OK)
+        
+    except Profile.DoesNotExist:
+        return Response({
+            'error': 'Profil bulunamadı'
+        }, status=status.HTTP_404_NOT_FOUND)
+        
+    except Exception as e:
+        logger.error(f"Alan güncelleme hatası: {str(e)}")
+        return Response({
+            'error': f'Alan güncellenirken hata oluştu: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1,0 +1,725 @@
+/* Header Section - Sade Tasarım */
+.product-header {
+  background: #ffffff;
+  color: #2c3e50;
+  padding: 30px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.product-header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .product-header-content {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 40px;
+  }
+}
+
+.product-image-container {
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.product-detail-image {
+  width: 250px;
+  height: 250px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  background: #f8f9fa;
+  padding: 10px;
+}
+
+.product-image-placeholder {
+  width: 250px;
+  height: 250px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #6c757d;
+  border: 1px solid #e9ecef;
+}
+
+.product-info-main {
+  flex-grow: 1;
+  max-width: 100%;
+}
+
+.product-title {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  line-height: 1.3;
+  color: #2c3e50;
+}
+
+@media (max-width: 767px) {
+  .product-title {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+}
+
+.product-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 768px) {
+  .product-meta-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+}
+
+.product-meta-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.product-meta-item {
+  color: #495057;
+  font-size: 15px;
+  line-height: 1.4;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.product-meta-item:last-child {
+  border-bottom: none;
+}
+
+.product-meta-item span {
+  font-weight: 600;
+  color: #2c3e50;
+  display: inline-block;
+  min-width: 80px;
+}
+
+.product-scores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.score-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.score-label {
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.nutri-score {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.nova-score {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.nova-1 { background: rgba(46, 204, 113, 0.15); color: #27ae60; border: 1px solid rgba(46, 204, 113, 0.3); }
+.nova-2 { background: rgba(241, 196, 15, 0.15); color: #f39c12; border: 1px solid rgba(241, 196, 15, 0.3); }
+.nova-3 { background: rgba(243, 156, 18, 0.15); color: #e67e22; border: 1px solid rgba(243, 156, 18, 0.3); }
+.nova-4 { background: rgba(231, 76, 60, 0.15); color: #c0392b; border: 1px solid rgba(231, 76, 60, 0.3); }
+
+.health-score {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  color: white;
+}
+.health-score.high { background: #2ecc71; }
+.health-score.medium { background: #f39c12; }
+.health-score.low { background: #e74c3c; }
+
+/* Navigation Tabs */
+.product-tabs {
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  overflow-x: auto;
+}
+
+.tab-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 500;
+  color: #6c757d;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+  color: #495057;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.tab-button.active {
+  color: #667eea;
+  background: white;
+  border-bottom-color: #667eea;
+}
+
+.tab-icon {
+  font-size: 18px;
+}
+
+/* Content Area */
+.tab-content {
+  padding: 40px;
+}
+
+/* Overview Tab */
+.overview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.quick-stats {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 768px) {
+  .quick-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.stat-card {
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.stat-card.naturalness {
+  background: linear-gradient(135deg, #d4f8d4 0%, #a8e6a8 100%);
+  border-color: #82d982;
+}
+
+.stat-card.allergens {
+  background: linear-gradient(135deg, #ffe6cc 0%, #ffcc99 100%);
+  border-color: #ffb366;
+}
+
+.stat-card.certifications {
+  background: linear-gradient(135deg, #cce6ff 0%, #99ccff 100%);
+  border-color: #66b3ff;
+}
+
+.stat-card-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: white;
+}
+
+.stat-icon.green { background: #2ecc71; }
+.stat-icon.orange { background: #f39c12; }
+.stat-icon.blue { background: #3498db; }
+
+.stat-info h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.stat-info.green h3 { color: #27ae60; }
+.stat-info.orange h3 { color: #e67e22; }
+.stat-info.blue h3 { color: #2980b9; }
+
+.stat-info p {
+  font-size: 14px;
+  margin: 0;
+  opacity: 0.8;
+}
+
+.labels-section h3 {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 16px;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.labels-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.label-tag {
+  padding: 8px 16px;
+  background: #e3f2fd;
+  color: #1976d2;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid #bbdefb;
+}
+
+/* Nutrition Tab */
+.nutrition-content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.nutrition-content h3 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .nutrition-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .nutrition-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.nutrition-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #dee2e6;
+  transition: all 0.3s ease;
+}
+
+.nutrition-card:hover {
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.nutrition-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.nutrition-icon {
+  font-size: 24px;
+}
+
+.nutrition-label {
+  font-weight: 500;
+  color: #495057;
+}
+
+.nutrition-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #212529;
+}
+
+.macro-ratios {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  border: 2px solid #e9ecef;
+}
+
+.macro-ratios h4 {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.macro-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.macro-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.macro-name {
+  width: 100px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.macro-bar-container {
+  flex-grow: 1;
+  background: #e9ecef;
+  border-radius: 20px;
+  height: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.macro-bar {
+  height: 100%;
+  border-radius: 20px;
+  transition: width 0.5s ease;
+}
+
+.macro-bar.protein { background: #e74c3c; }
+.macro-bar.carbs { background: #f1c40f; }
+.macro-bar.fat { background: #3498db; }
+
+.macro-percentage {
+  width: 64px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #212529;
+  text-align: right;
+}
+
+/* Ingredients Tab */
+.ingredients-content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.ingredients-content h3 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ingredients-text-card {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #ffeaa7;
+}
+
+.ingredients-text-card h4 {
+  font-weight: 600;
+  color: #856404;
+  margin-bottom: 12px;
+}
+
+.ingredients-text {
+  color: #856404;
+  line-height: 1.6;
+  font-size: 16px;
+}
+
+.allergens-card {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #f5c6cb;
+}
+
+.allergens-card h4 {
+  font-size: 20px;
+  font-weight: bold;
+  color: #721c24;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.allergens-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.allergen-tag {
+  padding: 8px 16px;
+  background: #f1c2c3;
+  color: #721c24;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid #e2989a;
+}
+
+.categories-section h4 {
+  font-size: 20px;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.categories-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-tag {
+  padding: 6px 12px;
+  background: #e1bee7;
+  color: #4a148c;
+  border-radius: 20px;
+  font-size: 12px;
+  border: 1px solid #ce93d8;
+}
+
+/* Additives Tab */
+.additives-content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.additives-content h3 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.additives-summary {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffe0b3 100%);
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #ffe0b3;
+}
+
+.additives-summary-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.additives-count {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+}
+
+.additives-count.high { background: #e74c3c; }
+.additives-count.medium { background: #f39c12; }
+.additives-count.low { background: #f1c40f; }
+
+.additives-summary h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #856404;
+}
+
+.additives-warning {
+  color: #856404;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.additives-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .additives-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.additive-item {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  border: 2px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.additive-item:hover {
+  border-color: #ffc107;
+}
+
+.additive-name {
+  color: #212529;
+  font-weight: 500;
+}
+
+.no-additives-card {
+  background: linear-gradient(135deg, #d4edda 0%, #a4d4a8 100%);
+  padding: 40px;
+  border-radius: 12px;
+  border: 1px solid #a4d4a8;
+  text-align: center;
+}
+
+.no-additives-icon {
+  width: 64px;
+  height: 64px;
+  background: #28a745;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: white;
+  margin: 0 auto 16px;
+}
+
+.no-additives-card h4 {
+  font-size: 20px;
+  font-weight: bold;
+  color: #155724;
+  margin-bottom: 8px;
+}
+
+.no-additives-card p {
+  color: #155724;
+}
+
+.product-summary {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #dee2e6;
+}
+
+.product-summary h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 767px) {
+  .summary-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.summary-stat {
+  text-align: center;
+}
+
+.summary-stat-value {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.summary-stat-value.high { color: #e74c3c; }
+.summary-stat-value.medium { color: #f39c12; }
+.summary-stat-value.low { color: #28a745; }
+
+.summary-stat-label {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+/* Responsive Design */
+@media (max-width: 767px) {
+  .comprehensive-product-container {
+    margin: 10px;
+    border-radius: 12px;
+  }
+  
+  .product-header {
+    padding: 20px;
+  }
+  
+  .product-title {
+    font-size: 1.8rem;
+  }
+  
+  .tab-content {
+    padding: 20px;
+  }
+  
+  .product-scores {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

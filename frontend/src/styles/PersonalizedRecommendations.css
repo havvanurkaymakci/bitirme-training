@@ -1,0 +1,512 @@
+/* PersonalizedRecommendations.css */
+.recommendations-section {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.recommendations-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #007bff;
+}
+
+.recommendations-header h2 {
+  color: #007bff;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.recommendation-type-badge {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* Yükleme Durumu */
+.recommendations-loading {
+  text-align: center;
+  padding: 2rem;
+  background: white;
+  border-radius: 10px;
+  border: 2px dashed #007bff;
+}
+
+.recommendations-loading .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+.recommendations-loading p {
+  color: #007bff;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+.recommendations-loading small {
+  color: #6c757d;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Hata Durumu */
+.recommendations-error {
+  background: linear-gradient(135deg, #fff5f5, #ffeaea);
+  border: 2px solid #e53e3e;
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.recommendations-error h3 {
+  color: #e53e3e;
+  margin: 0 0 1rem 0;
+}
+
+.recommendations-error p {
+  color: #c62828;
+  margin: 0.5rem 0 1.5rem 0;
+}
+
+.error-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.retry-button, .dismiss-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.retry-button {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.retry-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.dismiss-button {
+  background: #6c757d;
+  color: white;
+}
+
+.dismiss-button:hover {
+  background: #5a6268;
+}
+
+/* Giriş Gerekli Durumu */
+.auth-required-recommendations {
+  background: white;
+  border-radius: 10px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.auth-message h3 {
+  color: #007bff;
+  margin-bottom: 1rem;
+}
+
+.auth-message ul {
+  text-align: left;
+  max-width: 400px;
+  margin: 1.5rem auto;
+}
+
+.auth-message li {
+  margin: 0.5rem 0;
+  color: #495057;
+}
+
+.login-for-recommendations {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.login-for-recommendations:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+}
+
+/* Öneri Bilgileri */
+.recommendations-info {
+  background: white;
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid #28a745;
+}
+
+.recommendations-info p {
+  margin: 0;
+  color: #495057;
+  line-height: 1.6;
+}
+
+/* Öneriler Grid */
+.recommendations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Öneri Kartı */
+.recommendation-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.recommendation-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border-color: #007bff;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.product-name {
+  color: #2c3e50;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.3;
+  flex: 1;
+}
+
+.personalized-score {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 700;
+  min-width: 60px;
+  justify-content: center;
+}
+
+.personalized-score.excellent {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.personalized-score.good {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+}
+
+.personalized-score.fair {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #212529;
+}
+
+.personalized-score.poor {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+}
+
+.score-value {
+  font-size: 1.2rem;
+}
+
+.score-label {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+/* Ürün Bilgileri */
+.product-info {
+  margin-bottom: 1rem;
+}
+
+.basic-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.category, .brand {
+  background: #f8f9fa;
+  color: #495057;
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+  font-size: 0.875rem;
+  border: 1px solid #dee2e6;
+}
+
+.nutriscore {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #495057;
+}
+
+.nutri-grade {
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Öneri Sebebi */
+.recommendation-reason {
+  background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border-left: 4px solid #2196f3;
+}
+
+.reason-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: #1976d2;
+  font-size: 0.9rem;
+}
+
+.reason-icon {
+  font-size: 1rem;
+}
+
+.reason-text {
+  color: #424242;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Besin Değerleri Özeti */
+.nutritional-summary {
+  margin-bottom: 1rem;
+}
+
+.nutritional-summary h4 {
+  color: #495057;
+  font-size: 0.95rem;
+  margin: 0 0 0.75rem 0;
+  font-weight: 600;
+}
+
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.nutrition-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 0.825rem;
+}
+
+.nutrition-item .label {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.nutrition-item .value {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+/* İşlenmişlik Düzeyi */
+.processing-level {
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.processing-label {
+  color: #495057;
+  font-weight: 500;
+}
+
+.level {
+  margin-left: 0.5rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.level-1 { background: #d4edda; color: #155724; }
+.level-2 { background: #cce7ff; color: #004085; }
+.level-3 { background: #fff3cd; color: #856404; }
+.level-4 { background: #f8d7da; color: #721c24; }
+
+/* Kart Aksiyonları */
+.card-actions {
+  text-align: center;
+}
+
+.view-details-btn {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.view-details-btn:hover {
+  background: linear-gradient(135deg, #0056b3, #004085);
+  transform: translateY(-1px);
+}
+
+/* Öneri Yok Durumu */
+.no-recommendations {
+  text-align: center;
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  border: 2px dashed #6c757d;
+}
+
+.no-recommendations h3 {
+  color: #6c757d;
+  margin-bottom: 1rem;
+}
+
+.no-recommendations p {
+  color: #868e96;
+  margin-bottom: 1.5rem;
+}
+
+/* Öneri Aksiyonları */
+.recommendations-actions {
+  text-align: center;
+  padding-top: 1rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.refresh-recommendations {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 0.5rem;
+}
+
+.refresh-recommendations:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.refresh-recommendations:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.recommendations-actions small {
+  display: block;
+  color: #6c757d;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .recommendations-section {
+    margin: 1rem 0;
+    padding: 1rem;
+  }
+  
+  .recommendations-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .recommendations-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .personalized-score {
+    align-self: flex-start;
+  }
+  
+  .nutrition-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .basic-info {
+    flex-direction: column;
+  }
+  
+  .error-actions {
+    flex-direction: column;
+  }
+}

@@ -52,10 +52,17 @@ class ProductFeatureExtractor:
         nutrition_vector = {}
         
         for model_field, df_column in self.nutrition_mapping.items():
-            if df_column in row.index and pd.notna(row[df_column]):
+            # Önce sütunun var olup olmadığını kontrol et
+            if df_column in row.index:
                 try:
-                    nutrition_vector[model_field] = float(row[df_column])
-                except (ValueError, TypeError):
+                    value = row[df_column]
+                    # NaN kontrolü
+                    if pd.notna(value) and value != '' and str(value).lower() != 'nan':
+                        nutrition_vector[model_field] = float(value)
+                    else:
+                        nutrition_vector[model_field] = 0.0
+                except (ValueError, TypeError, KeyError) as e:
+                    logger.debug(f"Besin değeri dönüştürme hatası - {df_column}: {e}")
                     nutrition_vector[model_field] = 0.0
             else:
                 nutrition_vector[model_field] = 0.0
@@ -73,12 +80,22 @@ class ProductFeatureExtractor:
         # Alerjen text'leri birleştir
         allergen_text = ""
         for col in ['allergens', 'allergens_en', 'traces', 'traces_en']:
-            if col in row.index and pd.notna(row[col]) and str(row[col]).lower() != 'nan':
-                allergen_text += " " + str(row[col]).lower()
+            if col in row.index:
+                try:
+                    value = row[col]
+                    if pd.notna(value) and str(value).lower() != 'nan':
+                        allergen_text += " " + str(value).lower()
+                except (KeyError, AttributeError):
+                    continue
         
         # İçerik metni de ekle
-        if 'ingredients_text' in row.index and pd.notna(row['ingredients_text']):
-            allergen_text += " " + str(row['ingredients_text']).lower()
+        if 'ingredients_text' in row.index:
+            try:
+                value = row['ingredients_text']
+                if pd.notna(value):
+                    allergen_text += " " + str(value).lower()
+            except (KeyError, AttributeError):
+                pass
         
         # Alerjen varlığını kontrol et
         total_allergens = 0
@@ -96,10 +113,14 @@ class ProductFeatureExtractor:
         additives_info = {}
         
         # Katkı madde sayısı
-        if 'additives_n' in row.index and pd.notna(row['additives_n']):
+        if 'additives_n' in row.index:
             try:
-                additives_info['additives_count'] = int(row['additives_n'])
-            except (ValueError, TypeError):
+                value = row['additives_n']
+                if pd.notna(value):
+                    additives_info['additives_count'] = int(value)
+                else:
+                    additives_info['additives_count'] = 0
+            except (ValueError, TypeError, KeyError):
                 additives_info['additives_count'] = 0
         else:
             additives_info['additives_count'] = 0
@@ -115,17 +136,24 @@ class ProductFeatureExtractor:
         
         # Nutriscore grade (fr veya uk'dan al)
         for grade_col in ['nutrition_grade_fr', 'nutrition_grade_uk']:
-            if grade_col in row.index and pd.notna(row[grade_col]):
-                nutriscore_data['nutriscore_grade'] = str(row[grade_col]).upper()
-                break
+            if grade_col in row.index:
+                try:
+                    value = row[grade_col]
+                    if pd.notna(value):
+                        nutriscore_data['nutriscore_grade'] = str(value).upper()
+                        break
+                except (KeyError, AttributeError):
+                    continue
         
         # Nutriscore numeric (fr veya uk'dan al)
         for score_col in ['nutrition-score-fr_100g', 'nutrition-score-uk_100g']:
-            if score_col in row.index and pd.notna(row[score_col]):
+            if score_col in row.index:
                 try:
-                    nutriscore_data['nutriscore_numeric'] = float(row[score_col])
-                    break
-                except (ValueError, TypeError):
+                    value = row[score_col]
+                    if pd.notna(value):
+                        nutriscore_data['nutriscore_numeric'] = float(value)
+                        break
+                except (ValueError, TypeError, KeyError):
                     continue
         
         # Eğer numeric yok ama grade varsa, grade'den tahmin et
@@ -187,23 +215,31 @@ class ProductFeatureExtractor:
         # Preprocessor'dan gelen oranları kullan
         ratio_columns = ['fat_ratio', 'carb_ratio', 'protein_ratio']
         for col in ratio_columns:
-            if col in row.index and pd.notna(row[col]):
+            if col in row.index:
                 try:
-                    # carb_ratio'yu carbohydrates_ratio olarak kaydet (model ile uyumlu)
-                    if col == 'carb_ratio':
-                        macro_ratios['carbohydrates_ratio'] = float(row[col])
+                    value = row[col]
+                    if pd.notna(value):
+                        # carb_ratio'yu carbohydrates_ratio olarak kaydet (model ile uyumlu)
+                        if col == 'carb_ratio':
+                            macro_ratios['carbohydrates_ratio'] = float(value)
+                        else:
+                            macro_ratios[col.replace('_ratio', '_ratio')] = float(value)
                     else:
-                        macro_ratios[col.replace('_ratio', '_ratio')] = float(row[col])
-                except (ValueError, TypeError):
+                        macro_ratios[col] = 0.0
+                except (ValueError, TypeError, KeyError):
                     macro_ratios[col] = 0.0
             else:
                 macro_ratios[col] = 0.0
         
         # Şeker/karbonhidrat oranı
-        if 'sugar_intensity' in row.index and pd.notna(row['sugar_intensity']):
+        if 'sugar_intensity' in row.index:
             try:
-                macro_ratios['sugar_carb_ratio'] = float(row['sugar_intensity'])
-            except (ValueError, TypeError):
+                value = row['sugar_intensity']
+                if pd.notna(value):
+                    macro_ratios['sugar_carb_ratio'] = float(value)
+                else:
+                    macro_ratios['sugar_carb_ratio'] = 0.0
+            except (ValueError, TypeError, KeyError):
                 macro_ratios['sugar_carb_ratio'] = 0.0
         else:
             # Manuel hesapla
@@ -285,11 +321,23 @@ class ProductFeatureExtractor:
         
         # Diğer önemli alanlar
         important_fields = ['product_name']
-        important_count = sum(1 for field in important_fields if pd.notna(row.get(field)))
+        important_count = 0
+        for field in important_fields:
+            try:
+                if field in row.index and pd.notna(row[field]):
+                    important_count += 1
+            except KeyError:
+                continue
         
         # Ek bilgi alanları
         extra_fields = ['main_category', 'brands', 'ingredients_text']
-        extra_count = sum(1 for field in extra_fields if pd.notna(row.get(field)) and str(row.get(field)).strip() != '')
+        extra_count = 0
+        for field in extra_fields:
+            try:
+                if field in row.index and pd.notna(row[field]) and str(row[field]).strip() != '':
+                    extra_count += 1
+            except KeyError:
+                continue
         
         # Ağırlıklı skor
         essential_weight = 0.6
@@ -304,72 +352,114 @@ class ProductFeatureExtractor:
     
     def extract_all_features(self, row: pd.Series) -> Dict[str, Any]:
         """Bir ürün için tüm özellikleri çıkar"""
-        # Temel alanları kontrol et
-        if pd.isna(row.get('product_name')):
+        try:
+            # Temel alanları kontrol et
+            if 'product_name' not in row.index or pd.isna(row['product_name']):
+                return None
+            
+            # Tüm özellik vektörlerini çıkar
+            nutrition_vector = self.extract_nutrition_vector(row)
+            allergen_vector = self.extract_allergen_vector(row)
+            additives_info = self.extract_additives_info(row)
+            nutriscore_data = self.extract_nutriscore_data(row)
+            health_indicators = self.extract_health_indicators(row)
+            macro_ratios = self.extract_macro_ratios(row)
+            
+            # Skorları hesapla
+            health_score = self.calculate_health_score(row)
+            nutrition_quality_score = self.calculate_nutrition_quality_score(row)
+            data_completeness = self.calculate_data_completeness(row, nutrition_vector)
+            
+            # Processing level'ı preprocessor'dan al, yoksa tahmin et
+            processing_level = 1
+            if 'estimated_processing_level' in row.index:
+                try:
+                    value = row['estimated_processing_level']
+                    if pd.notna(value):
+                        processing_level = int(value)
+                except (ValueError, TypeError, KeyError):
+                    pass
+            
+            # Kategoriden main_category çıkar
+            main_category = 'unknown'
+            if 'main_category' in row.index:
+                try:
+                    value = row['main_category']
+                    if pd.notna(value):
+                        main_category = str(value)
+                except (KeyError, AttributeError):
+                    pass
+            elif 'categories' in row.index:
+                try:
+                    value = row['categories']
+                    if pd.notna(value):
+                        categories = str(value).split(',')
+                        if categories:
+                            main_category = categories[0].strip()
+                except (KeyError, AttributeError):
+                    pass
+            
+            # Brand bilgisi
+            main_brand = None
+            if 'brands' in row.index:
+                try:
+                    value = row['brands']
+                    if pd.notna(value):
+                        brands = str(value).split(',')
+                        if brands:
+                            main_brand = brands[0].strip()[:200]
+                except (KeyError, AttributeError):
+                    pass
+            
+            # İçerik analizi
+            ingredients_text = ''
+            if 'ingredients_text' in row.index:
+                try:
+                    value = row['ingredients_text']
+                    if pd.notna(value):
+                        ingredients_text = str(value)
+                except (KeyError, AttributeError):
+                    pass
+            
+            ingredients_text_length = len(ingredients_text)
+            ingredients_word_count = len(ingredients_text.split()) if ingredients_text else 0
+            
+            # Code değerini güvenli şekilde al
+            product_code = 'unknown'
+            if 'code' in row.index:
+                try:
+                    value = row['code']
+                    if pd.notna(value):
+                        product_code = str(value)
+                except (KeyError, AttributeError):
+                    pass
+            
+            return {
+                'product_code': product_code,
+                'product_name': str(row['product_name'])[:500],
+                'main_category': main_category[:200],
+                'main_brand': main_brand,
+                'main_country': None,  # Bu bilgi preprocessor'da yok
+                
+                'nutrition_vector': nutrition_vector,
+                'allergen_vector': allergen_vector,
+                'additives_info': additives_info,
+                'nutriscore_data': nutriscore_data,
+                'health_indicators': health_indicators,
+                'macro_ratios': macro_ratios,
+                
+                'processing_level': processing_level,
+                'nutrition_quality_score': nutrition_quality_score,
+                'health_score': health_score,
+                
+                'ingredients_text': ingredients_text[:2000],
+                'ingredients_text_length': ingredients_text_length,
+                'ingredients_word_count': ingredients_word_count,
+                
+                'data_completeness_score': data_completeness,
+                'is_valid_for_analysis': data_completeness >= 0.5
+            }
+            
+        except Exception as e:
+            logger.error(f"Feature extraction hatası: {str(e)}")
             return None
-        
-        # Tüm özellik vektörlerini çıkar
-        nutrition_vector = self.extract_nutrition_vector(row)
-        allergen_vector = self.extract_allergen_vector(row)
-        additives_info = self.extract_additives_info(row)
-        nutriscore_data = self.extract_nutriscore_data(row)
-        health_indicators = self.extract_health_indicators(row)
-        macro_ratios = self.extract_macro_ratios(row)
-        
-        # Skorları hesapla
-        health_score = self.calculate_health_score(row)
-        nutrition_quality_score = self.calculate_nutrition_quality_score(row)
-        data_completeness = self.calculate_data_completeness(row, nutrition_vector)
-        
-        # Processing level'ı preprocessor'dan al, yoksa tahmin et
-        processing_level = 1
-        if 'estimated_processing_level' in row.index and pd.notna(row['estimated_processing_level']):
-            processing_level = int(row['estimated_processing_level'])
-        
-        # Kategoriden main_category çıkar
-        main_category = 'unknown'
-        if 'main_category' in row.index and pd.notna(row['main_category']):
-            main_category = str(row['main_category'])
-        elif 'categories' in row.index and pd.notna(row['categories']):
-            # İlk kategoriyi ana kategori olarak al
-            categories = str(row['categories']).split(',')
-            if categories:
-                main_category = categories[0].strip()
-        
-        # Brand bilgisi
-        main_brand = None
-        if 'brands' in row.index and pd.notna(row['brands']):
-            brands = str(row['brands']).split(',')
-            if brands:
-                main_brand = brands[0].strip()[:200]
-        
-        # İçerik analizi
-        ingredients_text = str(row.get('ingredients_text', ''))
-        ingredients_text_length = len(ingredients_text)
-        ingredients_word_count = len(ingredients_text.split()) if ingredients_text else 0
-        
-        return {
-            'product_code': str(row['code']),
-            'product_name': str(row['product_name'])[:500],
-            'main_category': main_category[:200],
-            'main_brand': main_brand,
-            'main_country': None,  # Bu bilgi preprocessor'da yok
-            
-            'nutrition_vector': nutrition_vector,
-            'allergen_vector': allergen_vector,
-            'additives_info': additives_info,
-            'nutriscore_data': nutriscore_data,
-            'health_indicators': health_indicators,
-            'macro_ratios': macro_ratios,
-            
-            'processing_level': processing_level,
-            'nutrition_quality_score': nutrition_quality_score,
-            'health_score': health_score,
-            
-            'ingredients_text': ingredients_text[:2000],
-            'ingredients_text_length': ingredients_text_length,
-            'ingredients_word_count': ingredients_word_count,
-            
-            'data_completeness_score': data_completeness,
-            'is_valid_for_analysis': data_completeness >= 0.5
-        }

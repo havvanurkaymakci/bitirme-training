@@ -137,7 +137,7 @@ function EditProfilePage() {
     console.log('Submitting payload:', payload); // Debug için
   
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/profile/edit/', {
+      const response = await fetch('http://127.0.0.1:8000/api/profile/update/', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

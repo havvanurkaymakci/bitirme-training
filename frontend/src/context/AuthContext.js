@@ -1,5 +1,5 @@
 //AuthContext.js
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useContext } from "react";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from 'react-router-dom';
 const swal = require('sweetalert2');
@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
 
     const [loading, setLoading] = useState(false);
 
-    const navigate = useNavigate(); // <-- useHistory yerine
+    const navigate = useNavigate();
 
     const loginUser = async (email, password) => {
         const response = await fetch("http://127.0.0.1:8000/api/token/", {
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
             setAuthTokens(data);
             setUser(jwtDecode(data.access));
             localStorage.setItem("authTokens", JSON.stringify(data));
-            navigate("/profile/"); // <-- useHistory().push yerine
+            navigate("/profile/");
             swal.fire({
                 title: "Login Successful",
                 icon: "success",
@@ -75,9 +75,8 @@ export const AuthProvider = ({ children }) => {
                 body: JSON.stringify({ email, username, password, password2 })
             });
     
-            // Sunucudan gelen yanıtı JSON olarak al
             const data = await response.json();
-            console.log("Server response:", data); // Sunucudan gelen tam yanıtı göster
+            console.log("Server response:", data);
     
             if (response.status === 201) {
                 navigate("/login");
@@ -92,12 +91,10 @@ export const AuthProvider = ({ children }) => {
                 });
             } else {
                 console.log("Status code:", response.status);
-                console.log("Error details:", data); // Hata detaylarını göster
+                console.log("Error details:", data);
                 
-                // Hata mesajını hazırla
                 let errorMessage = "An Error Occurred";
                 if (data && typeof data === 'object') {
-                    // Hata mesajlarını birleştir
                     const errorDetails = Object.entries(data)
                         .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
                         .join('\n');
@@ -171,4 +168,12 @@ export const AuthProvider = ({ children }) => {
             {loading ? null : children}
         </AuthContext.Provider>
     );
+};
+
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
 };

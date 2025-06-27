@@ -69,7 +69,7 @@ function ProductSearch() {
 
     try {
       const queryParams = buildQueryParams();
-      const response = await axios.get(`http://localhost:8000/api/product-search/?${queryParams}`);
+      const response = await axios.get(`http://localhost:8000/api/products/product-search/?${queryParams}`);
       
       if (response.data && response.data.products && response.data.products.length > 0) {
         setProducts(response.data.products);
@@ -92,10 +92,18 @@ function ProductSearch() {
     }));
   };
 
-  const handleProductClick = (product) => {
-    // Ürün detay sayfasına yönlendir
-    navigate('/product-detail', { state: { product } });
-  };
+ const handleProductClick = (product) => {
+  // Ürün ID'sini veya barcode'unu al
+  const productId = product.id || product._id || product.code || product.barcode;
+  
+  if (productId) {
+    // URL parametresi ile yönlendir
+    navigate(`/product-detail/${productId}`);
+  } else {
+    console.error('Ürün ID bulunamadı:', product);
+    setError('Ürün detayına gidilemedi: ID bulunamadı');
+  }
+};
 
   const getFilterDescription = () => {
     const messages = [];

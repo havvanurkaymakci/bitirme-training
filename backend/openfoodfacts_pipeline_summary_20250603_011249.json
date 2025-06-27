@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-06-03 01:12:49",
+  "duration_seconds": 74.10740637779236,
+  "duration_formatted": "1 dakika 14.1 saniye",
+  "pipeline_results": {
+    "pipeline_summary": {
+      "total_processed": 9770,
+      "total_errors": 0,
+      "success_rate": 100.0,
+      "final_data_shape": [
+        9770,
+        49
+      ]
+    },
+    "health_scores_updated": true,
+    "similarities_calculated": true
+  },
+  "database_stats": {
+    "total_products": 9770,
+    "valid_products": 9360,
+    "total_similarities": 366348
+  }
+}

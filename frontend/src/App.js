@@ -1,3 +1,4 @@
+//app.js
 import { Route, Routes } from 'react-router-dom';
 import HomePage from './views/Homepage';
 import LoginPage from './views/Loginpage';
@@ -30,7 +31,8 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/product-search" element={<ProductSearch />} />
-          <Route path="/product-detail" element={<ProductDetail />} />
+          <Route path="/product-detail/:barcode" element={<ProductDetail />} />
+
         </Routes>
       </div>
     </AuthProvider>

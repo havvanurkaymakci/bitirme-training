@@ -1,121 +1,58 @@
 # api/serializers/product_serializers.py
 
 from rest_framework import serializers
-from api.models.product_features import ProductFeatures, ProductSimilarity
+from api.models.product_features import ProductFeatures
+from aimodels.ml_models.ml_recommendation_service import ml_recommendation_service
+from aimodels.ml_models.ml_product_score_service import ml_product_score_service
+# Profile serializer'ı import et
+from api.serializers.profile_serializer import ProfileSerializer
 
 
-class ProductFeaturesSerializer(serializers.ModelSerializer):
+class ProductFeaturesBaseSerializer(serializers.ModelSerializer):
     """
-    ProductFeatures modeli için ana serializer
+    Temel ürün özellikleri serializer - ML öneri sistemi için
     """
-    # Computed fields - sadece okuma için
+    # Besin değerleri - computed fields
     energy_kcal = serializers.SerializerMethodField()
+    protein = serializers.SerializerMethodField()
     fat = serializers.SerializerMethodField()
     sugar = serializers.SerializerMethodField()
     salt = serializers.SerializerMethodField()
-    protein = serializers.SerializerMethodField()
     fiber = serializers.SerializerMethodField()
     
-    # Alerjen bilgileri
-    all_allergens = serializers.SerializerMethodField()
-    
-    # Sağlık göstergeleri
-    high_sugar = serializers.SerializerMethodField()
-    high_salt = serializers.SerializerMethodField()
-    high_fat = serializers.SerializerMethodField()
-    high_calorie = serializers.SerializerMethodField()
-    high_protein = serializers.SerializerMethodField()
-    high_fiber = serializers.SerializerMethodField()
-    
-    # Nutriscore bilgileri
+    # Temel sağlık göstergeleri
     nutriscore_grade = serializers.SerializerMethodField()
-    nutriscore_numeric = serializers.SerializerMethodField()
     
-    # Katkı madde bilgileri
-    additives_count = serializers.SerializerMethodField()
-    has_risky_additives = serializers.SerializerMethodField()
+    # Resim URL'i
+    image_url = serializers.SerializerMethodField()
     
     class Meta:
         model = ProductFeatures
         fields = [
-            # Ana ürün bilgileri
             'id',
             'product_code',
             'product_name',
             'main_category',
             'main_brand',
-            'main_country',
-            
-            # JSON alanları
-            'nutrition_vector',
-            'allergen_vector',
-            'additives_info',
-            'nutriscore_data',
-            'health_indicators',
-            'macro_ratios',
-            
-            # Skalar alanlar
             'processing_level',
             'nutrition_quality_score',
             'health_score',
-            'data_completeness_score',
-            'is_valid_for_analysis',
-            
-            # Text alanları
-            'ingredients_text',
-            'ingredients_text_length',
-            'ingredients_word_count',
-            
-            # Computed fields
             'energy_kcal',
+            'protein',
             'fat',
             'sugar',
             'salt',
-            'protein',
             'fiber',
-            'all_allergens',
-            'high_sugar',
-            'high_salt',
-            'high_fat',
-            'high_calorie',
-            'high_protein',
-            'high_fiber',
             'nutriscore_grade',
-            'nutriscore_numeric',
-            'additives_count',
-            'has_risky_additives',
-            
-            # Zaman damgaları
-            'created_at',
-            'updated_at',
+            'image_url',
         ]
-        read_only_fields = [
-            'id',
-            'created_at',
-            'updated_at',
-            # Computed fields read-only
-            'energy_kcal',
-            'fat',
-            'sugar',
-            'salt',
-            'protein',
-            'fiber',
-            'all_allergens',
-            'high_sugar',
-            'high_salt',
-            'high_fat',
-            'high_calorie',
-            'high_protein',
-            'high_fiber',
-            'nutriscore_grade',
-            'nutriscore_numeric',
-            'additives_count',
-            'has_risky_additives',
-        ]
+        read_only_fields = ['id']
     
-    # Besin değeri getter metodları
     def get_energy_kcal(self, obj):
         return obj.get_energy_kcal()
+    
+    def get_protein(self, obj):
+        return obj.get_protein()
     
     def get_fat(self, obj):
         return obj.get_fat()
@@ -126,184 +63,254 @@ class ProductFeaturesSerializer(serializers.ModelSerializer):
     def get_salt(self, obj):
         return obj.get_salt()
     
-    def get_protein(self, obj):
-        return obj.get_protein()
-    
     def get_fiber(self, obj):
         return obj.get_fiber()
     
-    # Alerjen bilgileri
-    def get_all_allergens(self, obj):
-        return obj.get_all_allergens()
-    
-    # Sağlık göstergeleri
-    def get_high_sugar(self, obj):
-        return obj.is_high_sugar()
-    
-    def get_high_salt(self, obj):
-        return obj.is_high_salt()
-    
-    def get_high_fat(self, obj):
-        return obj.is_high_fat()
-    
-    def get_high_calorie(self, obj):
-        return obj.is_high_calorie()
-    
-    def get_high_protein(self, obj):
-        return obj.is_high_protein()
-    
-    def get_high_fiber(self, obj):
-        return obj.is_high_fiber()
-    
-    # Nutriscore bilgileri
     def get_nutriscore_grade(self, obj):
         return obj.get_nutriscore_grade()
     
-    def get_nutriscore_numeric(self, obj):
-        return obj.get_nutriscore_numeric()
-    
-    # Katkı madde bilgileri
-    def get_additives_count(self, obj):
-        return obj.get_additives_count()
-    
-    def get_has_risky_additives(self, obj):
-        return obj.has_risky_additives()
+    def get_image_url(self, obj):
+        """Ürün resmi URL'i oluştur"""
+        if obj.product_code:
+            code = str(obj.product_code)
+            if len(code) >= 13:  # EAN-13 format
+                folder_structure = '/'.join([code[i:i+3] for i in range(0, min(9, len(code)), 3)])
+                return f"https://images.openfoodfacts.org/images/products/{folder_structure}/{code}/front_en.jpg"
+            else:
+                return f"https://images.openfoodfacts.org/images/products/{code}/front_en.jpg"
+        return "https://via.placeholder.com/150x150?text=No+Image"
 
 
-class ProductFeaturesListSerializer(serializers.ModelSerializer):
+class ProductRecommendationSerializer(ProductFeaturesBaseSerializer):
     """
-    Liste görünümü için optimize edilmiş serializer - daha az alan
+    ML tabanlı ürün önerileri için serializer
     """
-    energy_kcal = serializers.SerializerMethodField()
-    nutriscore_grade = serializers.SerializerMethodField()
+    # ML recommendation service'in döndürdüğü alanlarla uyumlu
+    final_score = serializers.FloatField(read_only=True)
+    ml_score = serializers.FloatField(read_only=True)
+    target_score = serializers.FloatField(read_only=True)
+    score_improvement = serializers.FloatField(read_only=True)
+    similarity_bonus = serializers.FloatField(read_only=True)
+    improvement_bonus = serializers.FloatField(read_only=True)
+    reason = serializers.CharField(read_only=True)
+    category_match = serializers.BooleanField(read_only=True)
     
-    class Meta:
-        model = ProductFeatures
-        fields = [
-            'id',
-            'product_code',
-            'product_name',
-            'main_category',
-            'main_brand',
-            'processing_level',
-            'nutrition_quality_score',
-            'health_score',
-            'energy_kcal',
-            'nutriscore_grade',
-            'is_valid_for_analysis',
+    # Backward compatibility için eski alanlar
+    personalized_score = serializers.SerializerMethodField()
+    recommendation_reason = serializers.SerializerMethodField()
+    
+    class Meta(ProductFeaturesBaseSerializer.Meta):
+        fields = ProductFeaturesBaseSerializer.Meta.fields + [
+            'final_score',
+            'ml_score',
+            'target_score',
+            'score_improvement',
+            'similarity_bonus',
+            'improvement_bonus',
+            'reason',
+            'category_match',
+            'personalized_score',  # backward compatibility
+            'recommendation_reason',  # backward compatibility
         ]
     
-    def get_energy_kcal(self, obj):
-        return obj.get_energy_kcal()
+    def get_personalized_score(self, obj):
+        """Backward compatibility için"""
+        return getattr(obj, 'final_score', None)
     
-    def get_nutriscore_grade(self, obj):
-        return obj.get_nutriscore_grade()
-
-
-class ProductFeaturesDetailSerializer(ProductFeaturesSerializer):
-    """
-    Detay görünümü için genişletilmiş serializer
-    """
-    feature_vector = serializers.SerializerMethodField()
-    
-    class Meta(ProductFeaturesSerializer.Meta):
-        fields = ProductFeaturesSerializer.Meta.fields + ['feature_vector']
-    
-    def get_feature_vector(self, obj):
-        return obj.get_feature_vector()
-
-
-class ProductSimilaritySerializer(serializers.ModelSerializer):
-    """
-    Ürün benzerlik skorları için serializer
-    """
-    product_1_name = serializers.CharField(source='product_1.product_name', read_only=True)
-    product_2_name = serializers.CharField(source='product_2.product_name', read_only=True)
-    product_1_code = serializers.CharField(source='product_1.product_code', read_only=True)
-    product_2_code = serializers.CharField(source='product_2.product_code', read_only=True)
-    
-    class Meta:
-        model = ProductSimilarity
-        fields = [
-            'id',
-            'product_1',
-            'product_2',
-            'product_1_name',
-            'product_2_name',
-            'product_1_code',
-            'product_2_code',
-            'nutritional_similarity',
-            'category_similarity',
-            'overall_similarity',
-            'created_at',
-        ]
-        read_only_fields = ['id', 'created_at']
-
-
-class ProductRecommendationSerializer(serializers.ModelSerializer):
-    """
-    Öneri sistemi için özel serializer
-    """
-    similarity_score = serializers.FloatField(read_only=True)
-    recommendation_reason = serializers.CharField(read_only=True)
-    
-    class Meta:
-        model = ProductFeatures
-        fields = [
-            'id',
-            'product_code',
-            'product_name',
-            'main_category',
-            'main_brand',
-            'nutrition_quality_score',
-            'health_score',
-            'processing_level',
-            'similarity_score',
-            'recommendation_reason',
-        ]
+    def get_recommendation_reason(self, obj):
+        """Backward compatibility için"""
+        return getattr(obj, 'reason', '')
 
 
 class ProductSearchSerializer(serializers.Serializer):
     """
-    Ürün arama parametreleri için serializer
+    ML tabanlı ürün arama ve öneri parametreleri
     """
+    # Temel arama
     query = serializers.CharField(max_length=200, required=False, allow_blank=True)
     category = serializers.CharField(max_length=200, required=False, allow_blank=True)
     brand = serializers.CharField(max_length=200, required=False, allow_blank=True)
-    min_nutrition_score = serializers.FloatField(min_value=0, max_value=10, required=False)
-    max_nutrition_score = serializers.FloatField(min_value=0, max_value=10, required=False)
-    processing_level = serializers.ChoiceField(
-        choices=[1, 2, 3, 4], 
+    
+    # Sayfalama
+    page = serializers.IntegerField(min_value=1, default=1)
+    page_size = serializers.IntegerField(min_value=1, max_value=50, default=20)
+    
+    # Sıralama
+    sort_by = serializers.ChoiceField(
+        choices=[
+            'relevance',
+            'personalized_score', 
+            'nutrition_quality_score',
+            'health_score',
+            'product_name'
+        ],
+        default='relevance',
         required=False
     )
-    allergens_to_avoid = serializers.ListField(
-        child=serializers.CharField(max_length=50),
-        required=False,
-        allow_empty=True
+    
+    # Kişiselleştirme
+    include_personalized_scores = serializers.BooleanField(default=True)
+    
+    def validate(self, data):
+        # En az bir arama kriteri olmalı
+        if not any([data.get('query'), data.get('category'), data.get('brand')]):
+            raise serializers.ValidationError(
+                "En az bir arama kriteri belirtmelisiniz"
+            )
+        return data
+
+
+class ProductAlternativesSerializer(serializers.Serializer):
+    """
+    Alternatif ürün önerileri için serializer
+    """
+    product_code = serializers.CharField(max_length=50)
+    limit = serializers.IntegerField(min_value=1, max_value=20, default=5)
+    min_score_threshold = serializers.FloatField(min_value=0.0, max_value=10.0, default=6.0)
+    
+    def validate_product_code(self, value):
+        try:
+            ProductFeatures.objects.get(product_code=value, is_valid_for_analysis=True)
+        except ProductFeatures.DoesNotExist:
+            raise serializers.ValidationError("Ürün bulunamadı veya analiz için geçerli değil")
+        return value
+
+
+class ProductAlternativesResponseSerializer(serializers.Serializer):
+    """
+    ML recommendation service yanıtına uygun serializer
+    """
+    alternatives = ProductRecommendationSerializer(many=True, read_only=True)
+    target_product = serializers.DictField(read_only=True)
+    recommendation_stats = serializers.DictField(read_only=True)
+
+
+class PersonalizedProductScoreSerializer(serializers.Serializer):
+    """
+    Kişiselleştirilmiş ürün skoru için serializer
+    """
+    product_code = serializers.CharField(max_length=50)
+    
+    def validate_product_code(self, value):
+        try:
+            ProductFeatures.objects.get(product_code=value, is_valid_for_analysis=True)
+        except ProductFeatures.DoesNotExist:
+            raise serializers.ValidationError("Ürün bulunamadı veya analiz için geçerli değil")
+        return value
+
+
+class PersonalizedProductScoreResponseSerializer(serializers.Serializer):
+    """
+    ML score service yanıtına uygun serializer
+    """
+    personalized_score = serializers.FloatField(read_only=True)
+    score_level = serializers.DictField(read_only=True)
+    analysis = serializers.DictField(read_only=True)
+    product_info = serializers.DictField(read_only=True)
+
+
+# ML modeli için profil verilerini almak amacıyla ProfileSerializer'ı kullan
+class MLUserProfileInputSerializer(serializers.Serializer):
+    """
+    ML modeli için optimize edilmiş kullanıcı profili input serializer
+    ML servislerinin beklediği alanlarla tam uyumlu
+    """
+    # Temel demografik bilgiler
+    age = serializers.IntegerField(min_value=1, max_value=120)
+    gender = serializers.ChoiceField(choices=['Male', 'Female', 'Other'])
+    height = serializers.FloatField(min_value=50, max_value=300)  # cm
+    weight = serializers.FloatField(min_value=20, max_value=500)  # kg
+    bmi = serializers.FloatField(required=False)
+    activity_level = serializers.ChoiceField(
+        choices=['low', 'moderate', 'high'],
+        default='moderate'
     )
-    health_indicators = serializers.ListField(
-        child=serializers.CharField(max_length=50),
-        required=False,
-        allow_empty=True
+    
+    # Sağlık durumu - ML modelin beklediği alanlarla uyumlu
+    medical_conditions = serializers.ListField(
+        child=serializers.ChoiceField(choices=[
+            'diabetes_type_2',
+            'chronic_kidney_disease', 
+            'hyperthyroidism',
+            'osteoporosis',
+            'hypertension',
+            'cardiovascular_disease'
+        ]),
+        default=list,
+        required=False
     )
-    nutriscore_grades = serializers.ListField(
-        child=serializers.CharField(max_length=1),
-        required=False,
-        allow_empty=True
+    
+    allergies = serializers.ListField(
+        child=serializers.CharField(),
+        default=list,
+        required=False
+    )
+    
+    # Diyet tercihleri - ML modelin beklediği alanlarla uyumlu
+    dietary_preferences = serializers.ListField(
+        child=serializers.ChoiceField(choices=[
+            'high_protein',
+            'low_fat',
+            'vegan',
+            'vegetarian',
+            'gluten_free',
+            'low_sodium'
+        ]),
+        default=list,
+        required=False
+    )
+    
+    # Sağlık hedefleri - ML modelin beklediği alanlarla uyumlu
+    health_goals = serializers.ListField(
+        child=serializers.ChoiceField(choices=[
+            'muscle_gain',
+            'heart_health',
+            'boost_energy',
+            'weight_loss',
+            'weight_gain',
+            'better_digestion'
+        ]),
+        default=list,
+        required=False
     )
     
     def validate(self, data):
-        """Arama parametrelerini doğrula"""
-        min_score = data.get('min_nutrition_score')
-        max_score = data.get('max_nutrition_score')
-        
-        if min_score is not None and max_score is not None:
-            if min_score > max_score:
-                raise serializers.ValidationError(
-                    "min_nutrition_score, max_nutrition_score'dan büyük olamaz"
-                )
+        # BMI hesapla eğer verilmemişse
+        if not data.get('bmi') and data.get('height') and data.get('weight'):
+            height_m = data['height'] / 100
+            data['bmi'] = round(data['weight'] / (height_m ** 2), 1)
         
         return data
+    
+    @classmethod
+    def from_profile(cls, profile):
+        """
+        ProfileSerializer instance'ından ML input data'sı oluştur
+        """
+        return {
+            'age': profile.age,
+            'gender': profile.gender,
+            'height': profile.height,
+            'weight': profile.weight,
+            'bmi': profile.bmi,
+            'activity_level': getattr(profile, 'activity_level', 'moderate'),
+            'medical_conditions': profile.medical_conditions or [],
+            'allergies': profile.allergies or [],
+            'dietary_preferences': profile.dietary_preferences or [],
+            'health_goals': getattr(profile, 'health_goals', []),
+        }
+
+
+class ProductListWithScoresSerializer(serializers.Serializer):
+    """
+    Kişiselleştirilmiş skorlu ürün listesi için serializer
+    """
+    products = ProductRecommendationSerializer(many=True, read_only=True)
+    total_count = serializers.IntegerField(read_only=True)
+    page = serializers.IntegerField(read_only=True)
+    page_size = serializers.IntegerField(read_only=True)
+    has_next = serializers.BooleanField(read_only=True)
+    has_previous = serializers.BooleanField(read_only=True)
 
 
 class ProductComparisonSerializer(serializers.Serializer):
@@ -313,74 +320,59 @@ class ProductComparisonSerializer(serializers.Serializer):
     product_codes = serializers.ListField(
         child=serializers.CharField(max_length=50),
         min_length=2,
-        max_length=5,
-        help_text="Karşılaştırılacak ürün kodları (2-5 arasında)"
+        max_length=5
     )
     
-    comparison_fields = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        default=['nutrition_quality_score', 'health_score', 'processing_level'],
-        help_text="Karşılaştırılacak alanlar"
-    )
+    def validate_product_codes(self, value):
+        # Tüm ürünlerin mevcut olduğunu kontrol et
+        for code in value:
+            try:
+                ProductFeatures.objects.get(product_code=code, is_valid_for_analysis=True)
+            except ProductFeatures.DoesNotExist:
+                raise serializers.ValidationError(f"Ürün bulunamadı: {code}")
+        return value
 
 
-class ProductAnalysisSerializer(serializers.Serializer):
+class ProductComparisonResponseSerializer(serializers.Serializer):
     """
-    Ürün analizi sonuçları için serializer
+    Ürün karşılaştırması yanıt serializer
     """
-    product = ProductFeaturesDetailSerializer(read_only=True)
-    health_warnings = serializers.ListField(
+    products = ProductRecommendationSerializer(many=True, read_only=True)
+    comparison_summary = serializers.DictField(read_only=True)
+    best_match = serializers.DictField(read_only=True)
+
+
+class HealthAnalysisSerializer(serializers.Serializer):
+    """
+    Sağlık analizi yanıt serializer - ML score service analysis ile uyumlu
+    """
+    product = ProductFeaturesBaseSerializer(read_only=True)
+    personalized_score = serializers.FloatField(read_only=True)
+    score_level = serializers.DictField(read_only=True)
+    positive_points = serializers.ListField(
         child=serializers.CharField(),
         read_only=True
     )
-    dietary_warnings = serializers.ListField(
-        child=serializers.CharField(),
-        read_only=True
-    )
-    allergy_warnings = serializers.ListField(
+    negative_points = serializers.ListField(
         child=serializers.CharField(),
         read_only=True
     )
     recommendations = serializers.ListField(
-        child=ProductRecommendationSerializer(),
+        child=serializers.CharField(),
         read_only=True
     )
-    nutritional_analysis = serializers.DictField(read_only=True)
-    overall_rating = serializers.FloatField(read_only=True)
-    rating_explanation = serializers.CharField(read_only=True)
 
 
-class BulkProductCreateSerializer(serializers.Serializer):
-    """
-    Toplu ürün ekleme için serializer
-    """
-    products = serializers.ListField(
-        child=ProductFeaturesSerializer(),
-        min_length=1,
-        max_length=1000
-    )
-    
-    def create(self, validated_data):
-        """Toplu ürün oluşturma"""
-        products_data = validated_data['products']
-        products = []
-        
-        for product_data in products_data:
-            product = ProductFeatures.objects.create(**product_data)
-            products.append(product)
-        
-        return {'products': products, 'count': len(products)}
+# Utility serializers
+class SuccessResponseSerializer(serializers.Serializer):
+    """Başarılı işlem yanıtı için serializer"""
+    success = serializers.BooleanField(default=True)
+    message = serializers.CharField()
+    data = serializers.DictField(required=False)
 
 
-class ProductStatsSerializer(serializers.Serializer):
-    """
-    Ürün istatistikleri için serializer
-    """
-    total_products = serializers.IntegerField(read_only=True)
-    categories = serializers.DictField(read_only=True)
-    brands = serializers.DictField(read_only=True)
-    processing_levels = serializers.DictField(read_only=True)
-    nutriscore_distribution = serializers.DictField(read_only=True)
-    average_nutrition_score = serializers.FloatField(read_only=True)
-    average_health_score = serializers.FloatField(read_only=True)
+class ErrorResponseSerializer(serializers.Serializer):
+    """Hata yanıtı için serializer"""
+    success = serializers.BooleanField(default=False)
+    error = serializers.CharField()
+    details = serializers.DictField(required=False)

@@ -1,58 +1,78 @@
-# management/commands/process_openfoodfacts.py
-
+# management/commands/process_openfoodfacts.py 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, models
-from api.pipeline.product_data_pipeline import run_product_pipeline, generate_data_quality_report
+from api.pipeline.product_data_pipeline import (
+    run_simplified_pipeline, 
+    run_full_pipeline, 
+    generate_data_quality_report,
+    process_csv_file,
+    process_dataframe,
+    process_raw_tsv,
+    ProductDataPipeline  #  Pipeline sınıfını da import et
+)
 from api.models.product_features import ProductFeatures, ProductSimilarity
 import os
 import time
 import json
 
 class Command(BaseCommand):
-    help = 'OpenFoodFacts TSV verilerini işleyip ProductFeatures modeline kaydet'
+    help = 'OpenFoodFacts verilerini işleyip ProductFeatures modeline kaydet'
     
     def add_arguments(self, parser):
+        # Ana dosya parametresi
         parser.add_argument(
-            'tsv_file',
+            'input_file',
             type=str,
-            help='OpenFoodFacts TSV dosya yolu'
+            help='Giriş dosya yolu (TSV/CSV/Parquet)'
         )
+        
+        # Dosya türü belirtme
         parser.add_argument(
-            '--max-rows',
+            '--file-type',
+            type=str,
+            choices=['raw_tsv', 'processed_csv', 'processed_tsv', 'processed_parquet'],
+            default='raw_tsv',
+            help='Dosya türü (varsayılan: raw_tsv)'
+        )
+        
+        # Temel parametreler
+        parser.add_argument(
+            '--sample-size',
             type=int,
             default=None,
-            help='İşlenecek maksimum satır sayısı (test için)'
+            help='İşlenecek maksimum satır sayısı (sadece raw_tsv için)'
         )
-        parser.add_argument(
-            '--no-similarities',
-            action='store_true',
-            default=False,
-            help='Benzerlik hesaplamalarını atla'
-        )
-        parser.add_argument(
-            '--recalculate-health-scores',
-            action='store_true',
-            default=False,
-            help='Sağlık skorlarını yeniden hesapla'
-        )
-        parser.add_argument(
-            '--clear-existing',
-            action='store_true',
-            default=False,
-            help='Mevcut ProductFeatures verilerini temizle'
-        )
+        
         parser.add_argument(
             '--batch-size',
             type=int,
             default=1000,
             help='Batch boyutu (varsayılan: 1000)'
         )
+        
+        # Veri yönetimi seçenekleri
         parser.add_argument(
-            '--similarity-threshold',
-            type=float,
-            default=0.7,
-            help='Benzerlik threshold değeri (varsayılan: 0.7)'
+            '--clear-existing',
+            action='store_true',
+            default=False,
+            help='Mevcut ProductFeatures verilerini temizle'
         )
+        
+        parser.add_argument(
+            '--save-processed',
+            action='store_true',
+            default=False,
+            help='Önişlenmiş veriyi dosyaya kaydet (sadece raw_tsv için)'
+        )
+        
+        parser.add_argument(
+            '--processed-output-path',
+            type=str,
+            default=None,
+            help='Önişlenmiş verinin kaydedileceği yol (save-processed ile birlikte)'
+        )
+        
+        # Sadece rapor
         parser.add_argument(
             '--only-quality-report',
             action='store_true',
@@ -61,13 +81,13 @@ class Command(BaseCommand):
         )
     
     def handle(self, *args, **options):
-        tsv_file = options['tsv_file']
-        max_rows = options['max_rows']
-        calculate_similarities = not options['no_similarities']
-        recalculate_health_scores = options['recalculate_health_scores']
+        input_file = options['input_file']
+        file_type = options['file_type']
+        sample_size = options['sample_size']
+        batch_size = options['batch_size']  #  Batch size'ı al
         clear_existing = options['clear_existing']
-        batch_size = options['batch_size']
-        similarity_threshold = options['similarity_threshold']
+        save_processed = options['save_processed']
+        processed_output_path = options['processed_output_path']
         only_quality_report = options['only_quality_report']
         
         # Sadece kalite raporu isteniyor
@@ -76,24 +96,20 @@ class Command(BaseCommand):
             return
 
         # Dosya kontrolü
-        if not os.path.exists(tsv_file):
-            raise CommandError(f'TSV dosyası bulunamadı: {tsv_file}')
+        if not os.path.exists(input_file):
+            raise CommandError(f'Dosya bulunamadı: {input_file}')
         
-        # Dosya uzantısı kontrolü
-        if not tsv_file.lower().endswith(('.tsv', '.txt')):
-            self.stdout.write(
-                self.style.WARNING(f'Dosya TSV formatında değil gibi görünüyor: {tsv_file}')
-            )
+        # Dosya türü doğrulama
+        self._validate_file_type(input_file, file_type)
         
         self.stdout.write(f'OpenFoodFacts Pipeline Başlatılıyor...')
-        self.stdout.write(f'TSV Dosyası: {tsv_file}')
-        self.stdout.write(f'Maksimum Satır: {max_rows or "Tümü"}')
+        self.stdout.write(f'Giriş Dosyası: {input_file}')
+        self.stdout.write(f'Dosya Türü: {file_type}')
         self.stdout.write(f'Batch Boyutu: {batch_size}')
-        self.stdout.write(f'Benzerlik Hesapla: {"Evet" if calculate_similarities else "Hayır"}')
-        self.stdout.write(f'Sağlık Skorları Yeniden Hesapla: {"Evet" if recalculate_health_scores else "Hayır"}')
         
-        if calculate_similarities:
-            self.stdout.write(f'Benzerlik Threshold: {similarity_threshold}')
+        if file_type == 'raw_tsv':
+            self.stdout.write(f'Örnek Boyutu: {sample_size or "Tümü"}')
+            self.stdout.write(f'Önişlenmiş Veriyi Kaydet: {"Evet" if save_processed else "Hayır"}')
         
         # Mevcut verileri temizle
         if clear_existing:
@@ -104,22 +120,21 @@ class Command(BaseCommand):
         start_time = time.time()
         
         try:
-            # Pipeline parametrelerini ayarla
-            pipeline_params = {
-                'tsv_file_path': tsv_file,  # TSV dosyası için doğru parametre adı
-                'max_rows': max_rows,
-                'calculate_similarities': calculate_similarities,
-                'recalculate_health_scores': recalculate_health_scores
-            }
-            
-            # Pipeline'ı çalıştır
-            results = run_product_pipeline(**pipeline_params)
+            # Dosya türüne göre uygun pipeline'ı çalıştır
+            if file_type == 'raw_tsv':
+                results = self._process_raw_tsv(
+                    input_file, sample_size, save_processed, processed_output_path, batch_size  #  batch_size ekle
+                )
+            elif file_type in ['processed_csv', 'processed_tsv', 'processed_parquet']:
+                results = self._process_preprocessed_file(input_file, batch_size)  #  batch_size ekle
+            else:
+                raise CommandError(f'Desteklenmeyen dosya türü: {file_type}')
             
             # Sonuçları göster
-            self._display_results(results, start_time, similarity_threshold)
+            self._display_results(results, start_time)
             
             # Kalite raporu oluştur
-            if results.get('pipeline_summary', {}).get('total_processed', 0) > 0:
+            if results.get('total_processed', 0) > 0:
                 self._generate_and_display_quality_report()
             
         except Exception as e:
@@ -127,6 +142,75 @@ class Command(BaseCommand):
                 self.style.ERROR(f'Pipeline hatası: {str(e)}')
             )
             raise CommandError(f'Pipeline başarısız: {str(e)}')
+    
+    def _validate_file_type(self, file_path: str, file_type: str):
+        """Dosya türü ve uzantı uyumluluğunu kontrol et"""
+        file_extension = os.path.splitext(file_path)[1].lower()
+        
+        if file_type == 'raw_tsv' and file_extension not in ['.tsv', '.txt']:
+            self.stdout.write(
+                self.style.WARNING(f'Uyarı: {file_type} için {file_extension} uzantısı beklenmedik')
+            )
+        elif file_type == 'processed_csv' and file_extension != '.csv':
+            self.stdout.write(
+                self.style.WARNING(f'Uyarı: {file_type} için {file_extension} uzantısı beklenmedik')
+            )
+        elif file_type == 'processed_tsv' and file_extension not in ['.tsv', '.txt']:
+            self.stdout.write(
+                self.style.WARNING(f'Uyarı: {file_type} için {file_extension} uzantısı beklenmedik')
+            )
+        elif file_type == 'processed_parquet' and file_extension != '.parquet':
+            self.stdout.write(
+                self.style.WARNING(f'Uyarı: {file_type} için {file_extension} uzantısı beklenmedik')
+            )
+    
+    def _process_raw_tsv(self, tsv_path: str, sample_size: int, save_processed: bool, output_path: str, batch_size: int):
+        """Ham TSV dosyasını işle"""
+        self.stdout.write('Ham TSV dosyası işleniyor (preprocessing + feature extraction + database save)...')
+        
+        #  Özel pipeline fonksiyonu - batch_size desteği ile
+        return self._run_full_pipeline_with_batch_size(
+            raw_tsv_path=tsv_path,
+            sample_size=sample_size,
+            save_processed=save_processed,
+            processed_output_path=output_path,
+            batch_size=batch_size
+        )
+    
+    def _process_preprocessed_file(self, file_path: str, batch_size: int):
+        """Önişlenmiş dosyayı işle"""
+        self.stdout.write('Önişlenmiş dosya işleniyor (feature extraction + database save)...')
+        
+        #  Pipeline'ı batch_size ile oluştur
+        pipeline = ProductDataPipeline(batch_size=batch_size)
+        return pipeline.process_from_file(file_path)
+    
+    def _run_full_pipeline_with_batch_size(self, raw_tsv_path: str, sample_size: int = None, 
+                                         save_processed: bool = True, processed_output_path: str = None,
+                                         batch_size: int = 1000):
+        """Full pipeline'ı batch_size desteği ile çalıştır"""
+        from aimodels.ml_models.data_preprocessing import OpenFoodFactsPreprocessor
+        
+        self.stdout.write("Full pipeline başlatılıyor...")
+        
+        # 1. Preprocessor ile veriyi hazırla
+        self.stdout.write("1. Veri önişleme başlatılıyor...")
+        preprocessor = OpenFoodFactsPreprocessor()
+        
+        # Geçici dosya oluşturmadan direkt DataFrame'i al
+        df_preprocessed = preprocessor.preprocess(
+            file_path=raw_tsv_path,
+            output_path=processed_output_path if save_processed else None,
+            sample_size=sample_size
+        )
+        
+        # 2. Pipeline ile feature extraction ve kaydetme - batch_size ile
+        self.stdout.write("2. Feature extraction ve veritabanı kaydı başlatılıyor...")
+        pipeline = ProductDataPipeline(batch_size=batch_size)  #  batch_size ile oluştur
+        pipeline_result = pipeline.process_preprocessed_data(df_preprocessed)
+        
+        self.stdout.write("Full pipeline tamamlandı!")
+        return pipeline_result
     
     def _clear_existing_data(self):
         """Mevcut ProductFeatures ve ProductSimilarity verilerini temizle"""
@@ -163,10 +247,9 @@ class Command(BaseCommand):
                 self.style.ERROR(f'❌ Veri temizleme hatası: {str(e)}')
             )
     
-    def _display_results(self, results: dict, start_time: float, similarity_threshold: float):
+    def _display_results(self, results: dict, start_time: float):
         """Pipeline sonuçlarını göster"""
         duration = time.time() - start_time
-        pipeline_summary = results.get('pipeline_summary', {})
         
         self.stdout.write('\n' + '='*70)
         self.stdout.write(self.style.SUCCESS('🎉 OPENFOODFACTS PIPELINE TAMAMLANDI'))
@@ -174,32 +257,21 @@ class Command(BaseCommand):
         
         # Temel istatistikler
         self.stdout.write(f'⏱️  Toplam Süre: {self._format_duration(duration)}')
-        self.stdout.write(f'✅ İşlenen Ürün: {pipeline_summary.get("total_processed", 0):,}')
-        self.stdout.write(f'❌ Hatalı Ürün: {pipeline_summary.get("total_errors", 0):,}')
-        self.stdout.write(f'📊 Başarı Oranı: %{pipeline_summary.get("success_rate", 0):.2f}')
+        self.stdout.write(f'✅ İşlenen Ürün: {results.get("total_processed", 0):,}')
+        self.stdout.write(f'❌ Hatalı Ürün: {results.get("total_errors", 0):,}')
+        self.stdout.write(f'📊 Başarı Oranı: %{results.get("success_rate", 0):.2f}')
         
         # Veri şekli bilgisi
-        if 'final_data_shape' in pipeline_summary:
-            shape = pipeline_summary['final_data_shape']
+        if 'final_data_shape' in results:
+            shape = results['final_data_shape']
             self.stdout.write(f'📋 İşlenen Veri: {shape[0]:,} satır × {shape[1]} sütun')
-        
-        # Sağlık skorları güncellemesi
-        if results.get('health_scores_updated'):
-            self.stdout.write(f'💚 Sağlık skorları güncellendi')
-        
-        # Benzerlik hesaplaması
-        if results.get('similarities_calculated'):
-            similarity_count = ProductSimilarity.objects.count()
-            self.stdout.write(f'🔗 Hesaplanan Benzerlik: {similarity_count:,} (threshold: {similarity_threshold})')
-        elif 'similarity_error' in results:
-            self.stdout.write(f'⚠️  Benzerlik hesaplama hatası: {results["similarity_error"]}')
         
         # Database istatistikleri
         self._display_database_stats()
         
         # Performans metrikleri
-        total_processed = pipeline_summary.get('total_processed', 0)
-        if total_processed > 0:
+        total_processed = results.get('total_processed', 0)
+        if total_processed > 0 and duration > 0:
             processing_rate = total_processed / duration
             self.stdout.write(f'\n⚡ Performans: {processing_rate:.2f} ürün/saniye')
         
@@ -268,7 +340,6 @@ class Command(BaseCommand):
             self.stdout.write(f'📦 Toplam Ürün: {quality_report["total_products"]:,}')
             self.stdout.write(f'✅ Geçerli Ürün: {quality_report["valid_products"]:,}')
             self.stdout.write(f'📊 Geçerlilik Oranı: %{quality_report["validity_rate"]:.2f}')
-            self.stdout.write(f'🔗 Benzerlik Sayısı: {quality_report["similarity_count"]:,}')
             
             # Veri tamlık istatistikleri
             completeness = quality_report.get('completeness_stats', {})

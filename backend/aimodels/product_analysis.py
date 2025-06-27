@@ -34,7 +34,7 @@ class ProductAnalyzer:
         self.dietary_analyzer = DietaryAnalyzer()
         self.recommendation_engine = RecommendationEngine()
     
-    def analyze(self, product_data: Dict[str, Any], user_profile: Dict[str, Any]) -> AnalysisResult:
+    def analyze_detailed(self, product_data: Dict[str, Any], user_profile: Dict[str, Any]) -> AnalysisResult:
         """Ana analiz metodu - tam analiz yapar"""
         try:
             # Veri doğrulama
@@ -45,13 +45,13 @@ class ProductAnalyzer:
             normalized_profile = self._normalize_user_profile(user_profile)
             
             # Alt analizleri çalıştır
-            allergen_results = self.allergy_analyzer.analyze(
+            allergen_results = self.allergy_analyzer.analyze_detailed(
                 product_data, normalized_profile.get('allergies', [])
             )
-            medical_results = self.medical_analyzer.analyze(
+            medical_results = self.medical_analyzer.analyze_detailed(
                 product_data, normalized_profile.get('health_conditions', [])
             )
-            dietary_results = self.dietary_analyzer.analyze(
+            dietary_results = self.dietary_analyzer.analyze_detailed(
                 product_data, normalized_profile.get('dietary_preferences', [])
             )
             nutritional_analysis = self._analyze_nutrition(product_data, normalized_profile)
@@ -113,7 +113,7 @@ class ProductAnalyzer:
     # EKLEME: Views.py'nin beklediği metod
     def analyze_product_complete(self, product_data: Dict[str, Any], user_profile: Dict[str, Any]) -> Dict[str, Any]:
         """Kapsamlı ürün analizi - views.py için uyumlu"""
-        result = self.analyze(product_data, user_profile)
+        result = self.analyze_detailed(product_data, user_profile)
         
         # AnalysisResult'ı dictionary'ye çevir
         return {
@@ -136,17 +136,17 @@ class ProductAnalyzer:
         try:
             normalized_profile = self._normalize_user_profile(user_profile)
             
-            allergen_results = self.allergy_analyzer.analyze(
+            allergen_results = self.allergy_analyzer.analyze_detailed(
                 product_data, normalized_profile.get('allergies', [])
             )
             
             # Medical ve dietary analizörlerin get_critical_warnings metodları varsa kullan
             medical_results = getattr(self.medical_analyzer, 'get_critical_warnings', 
-                                    self.medical_analyzer.analyze)(
+                                    self.medical_analyzer.analyze_detailed)(
                 product_data, normalized_profile.get('health_conditions', [])
             )
             dietary_results = getattr(self.dietary_analyzer, 'get_critical_warnings', 
-                                    self.dietary_analyzer.analyze)(
+                                    self.dietary_analyzer.analyze_detailed)(
                 product_data, normalized_profile.get('dietary_preferences', [])
             )
             

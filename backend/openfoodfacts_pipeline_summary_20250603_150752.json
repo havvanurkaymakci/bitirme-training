@@ -1,0 +1,19 @@
+{
+  "timestamp": "2025-06-03 15:07:52",
+  "duration_seconds": 50.99491024017334,
+  "duration_formatted": "50.99 saniye",
+  "pipeline_results": {
+    "total_processed": 48860,
+    "total_errors": 0,
+    "success_rate": 100.0,
+    "final_data_shape": [
+      48860,
+      19
+    ]
+  },
+  "database_stats": {
+    "total_products": 48860,
+    "valid_products": 46686,
+    "total_similarities": 0
+  }
+}
