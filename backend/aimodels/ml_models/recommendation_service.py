@@ -1,4 +1,4 @@
-# aimodels/recommendation_service.py
+# aimodels/ml_models/recommendation_service.py
 
 import os
 import logging
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class MLRecommendationService:
     """
-    ML Model tabanlı ürün önerisi servisi - Sadece alternatif ürün önerileri için
+    ML Model tabanlı ürün önerisi servisi
     """
     _instance = None
     _model_loaded = False
@@ -58,31 +58,245 @@ class MLRecommendationService:
             logger.error(f"Model yükleme hatası: {str(e)}")
             self.model = None
 
+    def get_product_alternatives(self, user_profile, product_code, limit=6, min_score_threshold=6.0):
+        """
+        VIEW'e uyumlu alternatif ürün önerisi
+        """
+        try:
+            # Hedef ürünü bul
+            try:
+                target_product = ProductFeatures.objects.get(
+                    product_code=product_code,
+                    is_valid_for_analysis=True
+                )
+            except ProductFeatures.DoesNotExist:
+                return None
+
+            target_product_dict = self._convert_product_to_dict(target_product)
+            
+            # Benzer ürünleri bul
+            category = target_product.main_category
+            similar_products = ProductFeatures.objects.filter(
+                main_category__icontains=category.split()[0] if category else '',
+                is_valid_for_analysis=True
+            ).exclude(product_code=product_code)[:100]
+
+            if len(similar_products) < 20:
+                similar_products = ProductFeatures.objects.filter(
+                    is_valid_for_analysis=True
+                ).exclude(product_code=product_code)[:100]
+
+            # Skorlama ve filtreleme
+            alternatives = []
+            for product in similar_products:
+                try:
+                    product_dict = self._convert_product_to_dict(product)
+                    
+                    # ML skoru
+                    ml_score = self.get_personalized_score(user_profile, product_dict)
+                    target_score = self.get_personalized_score(user_profile, target_product_dict)
+                    
+                    # Bonuslar
+                    similarity_bonus = self._calculate_similarity_bonus(target_product_dict, product_dict)
+                    improvement_bonus = max(0, ml_score - target_score) * 0.5
+                    
+                    # Final skor
+                    final_score = ml_score + similarity_bonus + improvement_bonus
+                    final_score = max(0, min(10, final_score))
+                    
+                    if final_score >= min_score_threshold:
+                        alternatives.append({
+                            'product': product,
+                            'final_score': round(final_score, 2),
+                            'ml_score': round(ml_score, 2),
+                            'target_score': round(target_score, 2),
+                            'score_improvement': round(ml_score - target_score, 2),
+                            'similarity_bonus': round(similarity_bonus, 2),
+                            'improvement_bonus': round(improvement_bonus, 2),
+                            'reason': self._get_recommendation_reason(target_product_dict, product_dict, final_score),
+                            'category_match': target_product.main_category == product.main_category
+                        })
+                except Exception as e:
+                    logger.error(f"Ürün skorlama hatası {product.product_code}: {str(e)}")
+                    continue
+
+            # Sıralama ve çeşitlilik
+            alternatives.sort(key=lambda x: x['final_score'], reverse=True)
+            diverse_alternatives = self._ensure_diversity(alternatives, limit)
+
+            return {
+                'alternatives': diverse_alternatives,
+                'target_product': {
+                    'code': target_product.product_code,
+                    'name': target_product.product_name,
+                    'category': target_product.main_category
+                },
+                'recommendation_stats': {
+                    'total_found': len(alternatives),
+                    'returned': len(diverse_alternatives),
+                    'avg_score': round(np.mean([alt['final_score'] for alt in diverse_alternatives]), 2) if diverse_alternatives else 0
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"Alternatif ürün önerisi hatası: {str(e)}")
+            return None
+
+    def get_user_recommendations(self, user_data, categories=None, limit=6):
+        """
+        VIEW'e uyumlu kişiselleştirilmiş öneriler
+        """
+        try:
+            # Ürün havuzunu belirle
+            products_query = ProductFeatures.objects.filter(is_valid_for_analysis=True)
+            
+            if categories:
+                category_filters = categories.split(',')
+                category_q = None
+                from django.db.models import Q
+                for cat in category_filters:
+                    if category_q is None:
+                        category_q = Q(main_category__icontains=cat.strip())
+                    else:
+                        category_q |= Q(main_category__icontains=cat.strip())
+                products_query = products_query.filter(category_q)
+
+            products = products_query[:200]  # Performans için sınırla
+
+            # Skorlama
+            recommendations = []
+            for product in products:
+                try:
+                    product_dict = self._convert_product_to_dict(product)
+                    ml_score = self.get_personalized_score(user_data, product_dict)
+                    
+                    # Kişiselleştirme bonusu
+                    personalization_bonus = self._calculate_personalization_bonus(user_data, product_dict)
+                    
+                    final_score = ml_score + personalization_bonus
+                    final_score = max(0, min(10, final_score))
+                    
+                    recommendations.append({
+                        'product': product,
+                        'final_score': round(final_score, 2),
+                        'ml_score': round(ml_score, 2),
+                        'personalization_bonus': round(personalization_bonus, 2),
+                        'recommendation_reason': self._get_personalization_reason(user_data, product_dict),
+                        'health_benefits': self._get_health_benefits(user_data, product_dict)
+                    })
+                except Exception as e:
+                    logger.error(f"Ürün skorlama hatası {product.product_code}: {str(e)}")
+                    continue
+
+            # En iyileri seç
+            recommendations.sort(key=lambda x: x['final_score'], reverse=True)
+            top_recommendations = recommendations[:limit * 2]  # Çeşitlilik için fazla al
+            diverse_recommendations = self._ensure_diversity(top_recommendations, limit)
+
+            return {
+                'recommendations': diverse_recommendations,
+                'user_profile_summary': self._get_user_summary(user_data),
+                'recommendation_stats': {
+                    'total_analyzed': len(recommendations),
+                    'returned': len(diverse_recommendations),
+                    'avg_score': round(np.mean([rec['final_score'] for rec in diverse_recommendations]), 2) if diverse_recommendations else 0
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"Kişiselleştirilmiş öneri hatası: {str(e)}")
+            return None
+
+    def _calculate_personalization_bonus(self, user_data, product_data):
+        """Kişiselleştirme bonusu hesapla"""
+        bonus = 0.0
+        
+        # Yaş bazlı bonus
+        age = user_data.get('age', 30)
+        if age > 50 and product_data.get('fiber', 0) > 5:
+            bonus += 0.3
+        elif age < 30 and product_data.get('protein', 0) > 15:
+            bonus += 0.3
+        
+        # Sağlık hedefleri bonusu
+        health_goals = user_data.get('health_goals', [])
+        if 'muscle_gain' in health_goals and product_data.get('protein', 0) > 20:
+            bonus += 0.5
+        if 'heart_health' in health_goals and not product_data.get('is_high_salt', 0):
+            bonus += 0.4
+        
+        return min(1.0, bonus)
+
+    def _get_personalization_reason(self, user_data, product_data):
+        """Kişiselleştirme sebebi"""
+        reasons = []
+        
+        age = user_data.get('age', 30)
+        health_goals = user_data.get('health_goals', [])
+        
+        if age > 50 and product_data.get('fiber', 0) > 5:
+            reasons.append("Yaşınız için yüksek fiber")
+        if 'muscle_gain' in health_goals and product_data.get('protein', 0) > 20:
+            reasons.append("Kas gelişimi hedefi")
+        if 'heart_health' in health_goals and not product_data.get('is_high_salt', 0):
+            reasons.append("Kalp sağlığı")
+        
+        return " • ".join(reasons[:2]) if reasons else "Kişiselleştirilmiş seçim"
+
+    def _get_health_benefits(self, user_data, product_data):
+        """Sağlık faydaları listesi"""
+        benefits = []
+        
+        if product_data.get('protein', 0) > 15:
+            benefits.append("Yüksek protein")
+        if product_data.get('fiber', 0) > 5:
+            benefits.append("Yüksek fiber")
+        if not product_data.get('is_high_sugar', 0):
+            benefits.append("Düşük şeker")
+        if product_data.get('processing_level', 3) <= 2:
+            benefits.append("Az işlenmiş")
+        
+        return benefits[:3]
+
+    def _get_user_summary(self, user_data):
+        """Kullanıcı profil özeti"""
+        return {
+            'age_group': 'genç' if user_data.get('age', 30) < 30 else 'orta yaş' if user_data.get('age', 30) < 50 else 'yaşlı',
+            'bmi_category': self._get_bmi_category(user_data),
+            'main_health_goals': user_data.get('health_goals', [])[:2],
+            'dietary_restrictions': user_data.get('medical_conditions', [])[:2]
+        }
+
+    def _get_bmi_category(self, user_data):
+        """BMI kategorisi"""
+        bmi = self._calculate_bmi(user_data)
+        if bmi < 18.5:
+            return 'zayıf'
+        elif bmi < 25:
+            return 'normal'
+        elif bmi < 30:
+            return 'fazla kilolu'
+        else:
+            return 'obez'
+
+    # Mevcut yardımcı metodları koru
     def get_personalized_score(self, user_profile, product_data):
-        """
-        Kullanıcı profili ve ürün verisi için kişiselleştirilmiş skor hesapla
-        """
+        """Kişiselleştirilmiş skor hesapla"""
         if self.model is None:
             return self._calculate_fallback_score(user_profile, product_data)
 
         try:
-            # Feature vektörü oluştur (training_model.py ile uyumlu)
             features = self._create_feature_vector(user_profile, product_data)
-            
-            # DataFrame'e çevir ve eksik kolonları ekle
             features_df = pd.DataFrame([features])
+            
             for col in self.feature_columns:
                 if col not in features_df.columns:
                     features_df[col] = 0
 
-            # Sıralamayı düzelt
             features_df = features_df[self.feature_columns]
-
-            # Normalize et ve tahmin yap
             features_scaled = self.scaler.transform(features_df)
             prediction = self.model.predict(features_scaled)
 
-            # Skoru 0-10 arası sınırla
             score = max(0, min(10, prediction[0]))
             return round(score, 2)
 
@@ -90,99 +304,37 @@ class MLRecommendationService:
             logger.error(f"ML skorlama hatası: {str(e)}")
             return self._calculate_fallback_score(user_profile, product_data)
 
-    def get_product_alternatives(self, user_profile, searched_product, limit=5):
-        """
-        Aranılan ürüne göre ML tabanlı alternatif öneriler
-        """
-        try:
-            # Aynı kategoride veya benzer kategorilerde ürünleri bul
-            category = searched_product.get('main_category', '')
-            
-            # Daha geniş kategori araması
-            similar_products = ProductFeatures.objects.filter(
-                main_category__icontains=category.split()[0] if category else '',  # İlk kelimeyi al
-                is_valid_for_analysis=True
-            ).exclude(product_code=searched_product.get('code', ''))[:100]  # Daha fazla ürün al
-
-            # Eğer yeterli ürün yoksa genel arama yap
-            if len(similar_products) < 20:
-                similar_products = ProductFeatures.objects.filter(
-                    is_valid_for_analysis=True
-                ).exclude(product_code=searched_product.get('code', ''))[:100]
-
-            # Her ürün için kişiselleştirilmiş skor hesapla
-            scored_products = []
-            for product in similar_products:
-                try:
-                    product_dict = self._convert_product_to_dict(product)
-                    personalized_score = self.get_personalized_score(user_profile, product_dict)
-                    
-                    # Benzerlik bonusu ekle
-                    similarity_bonus = self._calculate_similarity_bonus(
-                        searched_product, product_dict
-                    )
-                    
-                    final_score = personalized_score + similarity_bonus
-                    final_score = max(0, min(10, final_score))
-                    
-                    scored_products.append({
-                        'product': product,
-                        'personalized_score': round(final_score, 2),
-                        'base_score': personalized_score,
-                        'similarity_bonus': similarity_bonus,
-                        'recommendation_reason': self._get_recommendation_reason(
-                            searched_product, product_dict, final_score
-                        )
-                    })
-                except Exception as e:
-                    logger.error(f"Ürün skorlama hatası {product.product_code}: {str(e)}")
-                    continue
-
-            # Skora göre sırala ve en iyileri döndür
-            scored_products.sort(key=lambda x: x['personalized_score'], reverse=True)
-            
-            # Çeşitlilik için farklı skorlardaki ürünlerden seç
-            diverse_products = self._ensure_diversity(scored_products, limit)
-            
-            return diverse_products
-
-        except Exception as e:
-            logger.error(f"Alternatif ürün önerisi hatası: {str(e)}")
-            return []
-
     def _create_feature_vector(self, user_profile, product_data):
-        """
-        training_model.py ile tamamen uyumlu feature vektörü oluştur
-        """
+        """Feature vektörü oluştur"""
         features = {}
 
-        # Kullanıcı özellikleri - training_model.py'deki gibi
+        # Kullanıcı özellikleri
         features['user_age'] = user_profile.get('age', 30)
         features['user_bmi'] = self._calculate_bmi(user_profile)
         features['user_gender_male'] = 1 if user_profile.get('gender') == 'Male' else 0
         features['user_activity_high'] = 1 if user_profile.get('activity_level') == 'high' else 0
         features['user_activity_moderate'] = 1 if user_profile.get('activity_level') == 'moderate' else 0
 
-        # Sağlık durumu binary features - JSON field'dan liste alınıyor
+        # Sağlık durumu
         medical_conditions = user_profile.get('medical_conditions', [])
         features['has_diabetes'] = 1 if 'diabetes_type_2' in medical_conditions else 0
         features['has_kidney_disease'] = 1 if 'chronic_kidney_disease' in medical_conditions else 0
         features['has_hyperthyroidism'] = 1 if 'hyperthyroidism' in medical_conditions else 0
         features['has_osteoporosis'] = 1 if 'osteoporosis' in medical_conditions else 0
 
-        # Diyet tercihleri - JSON field'dan liste alınıyor
+        # Diyet tercihleri
         diet_prefs = user_profile.get('dietary_preferences', [])
         features['prefers_high_protein'] = 1 if 'high_protein' in diet_prefs else 0
         features['prefers_low_fat'] = 1 if 'low_fat' in diet_prefs else 0
         features['is_vegan'] = 1 if 'vegan' in diet_prefs else 0
 
-        # Sağlık hedefleri - JSON field'dan liste alınıyor
+        # Sağlık hedefleri
         health_goals = user_profile.get('health_goals', [])
         features['goal_muscle_gain'] = 1 if 'muscle_gain' in health_goals else 0
         features['goal_heart_health'] = 1 if 'heart_health' in health_goals else 0
         features['goal_boost_energy'] = 1 if 'boost_energy' in health_goals else 0
 
-        # Ürün özellikleri - training_model.py ile uyumlu
+        # Ürün özellikleri
         features['product_energy'] = self._safe_float(product_data.get('energy_kcal', 0))
         features['product_protein'] = self._safe_float(product_data.get('protein', 0))
         features['product_fat'] = self._safe_float(product_data.get('fat', 0))
@@ -205,9 +357,7 @@ class MLRecommendationService:
         return features
 
     def _convert_product_to_dict(self, product_obj):
-        """
-        ProductFeatures nesnesini training_model.py'deki formatta dict'e çevir
-        """
+        """ProductFeatures nesnesini dict'e çevir"""
         return {
             'product_code': product_obj.product_code,
             'product_name': product_obj.product_name,
@@ -216,7 +366,6 @@ class MLRecommendationService:
             'nutrition_quality_score': product_obj.nutrition_quality_score,
             'health_score': product_obj.health_score,
             
-            # Besin değerleri
             'energy_kcal': product_obj.get_energy_kcal(),
             'protein': product_obj.get_protein(),
             'fat': product_obj.get_fat(),
@@ -224,7 +373,6 @@ class MLRecommendationService:
             'salt': product_obj.get_salt(),
             'fiber': product_obj.get_fiber(),
             
-            # Binary özellikler
             'is_high_sugar': 1 if product_obj.is_high_sugar() else 0,
             'is_high_salt': 1 if product_obj.is_high_salt() else 0,
             'is_high_fat': 1 if product_obj.is_high_fat() else 0,
@@ -235,27 +383,15 @@ class MLRecommendationService:
         }
 
     def _calculate_similarity_bonus(self, searched_product, recommended_product):
-        """
-        Ürünler arası benzerlik bonusu hesapla
-        """
+        """Benzerlik bonusu hesapla"""
         bonus = 0.0
         
-        # Kategori benzerliği
         if searched_product.get('main_category') == recommended_product.get('main_category'):
             bonus += 0.5
-        elif self._categories_similar(
-            searched_product.get('main_category', ''), 
-            recommended_product.get('main_category', '')
-        ):
-            bonus += 0.3
         
-        # Besin değerleri benzerliği
-        nutritional_similarity = self._calculate_nutritional_similarity(
-            searched_product, recommended_product
-        )
+        nutritional_similarity = self._calculate_nutritional_similarity(searched_product, recommended_product)
         bonus += nutritional_similarity * 0.3
         
-        # İşlenmişlik seviyesi benzerliği
         processing_diff = abs(
             searched_product.get('processing_level', 3) - 
             recommended_product.get('processing_level', 3)
@@ -263,12 +399,10 @@ class MLRecommendationService:
         if processing_diff <= 1:
             bonus += 0.2
         
-        return min(1.0, bonus)  # Maksimum 1 puan bonus
+        return min(1.0, bonus)
 
     def _calculate_nutritional_similarity(self, product1, product2):
-        """
-        İki ürün arasındaki besin değerleri benzerliği (0-1)
-        """
+        """Besin değerleri benzerliği"""
         nutrients = ['energy_kcal', 'protein', 'fat', 'sugar', 'salt', 'fiber']
         similarities = []
         
@@ -281,7 +415,6 @@ class MLRecommendationService:
             elif val1 == 0 or val2 == 0:
                 similarities.append(0.0)
             else:
-                # Normalize edilmiş fark hesabı
                 max_val = max(val1, val2)
                 min_val = min(val1, val2)
                 similarity = min_val / max_val if max_val > 0 else 1.0
@@ -289,38 +422,17 @@ class MLRecommendationService:
         
         return np.mean(similarities)
 
-    def _categories_similar(self, cat1, cat2):
-        """
-        İki kategori benzer mi kontrol et
-        """
-        if not cat1 or not cat2:
-            return False
-        
-        cat1_words = set(cat1.lower().split())
-        cat2_words = set(cat2.lower().split())
-        
-        # Ortak kelime oranı
-        intersection = len(cat1_words.intersection(cat2_words))
-        union = len(cat1_words.union(cat2_words))
-        
-        similarity = intersection / union if union > 0 else 0
-        return similarity > 0.3
-
     def _ensure_diversity(self, scored_products, limit):
-        """
-        Önerilerde çeşitlilik sağla - farklı kategorilerden ürünler seç
-        """
+        """Çeşitlilik sağla"""
         if len(scored_products) <= limit:
             return scored_products
         
         diverse_products = []
         seen_categories = set()
         
-        # İlk olarak en yüksek skoru al
         diverse_products.append(scored_products[0])
         seen_categories.add(scored_products[0]['product'].main_category)
         
-        # Farklı kategorilerden ürünler ekle
         for product in scored_products[1:]:
             if len(diverse_products) >= limit:
                 break
@@ -330,137 +442,74 @@ class MLRecommendationService:
                 diverse_products.append(product)
                 seen_categories.add(category)
         
-        # Eksik varsa en yüksek skorlu ürünlerle tamamla
-        if len(diverse_products) < limit:
+        while len(diverse_products) < limit and len(diverse_products) < len(scored_products):
             for product in scored_products:
                 if len(diverse_products) >= limit:
                     break
                 if product not in diverse_products:
                     diverse_products.append(product)
+                    break
         
         return diverse_products[:limit]
 
     def _get_recommendation_reason(self, searched_product, recommended_product, score):
-        """
-        Öneri sebebini belirle - daha detaylı
-        """
+        """Öneri sebebi"""
         reasons = []
         
-        # Skor bazlı açıklama
         if score >= 8.5:
-            reasons.append("Sizin için mükemmel uyum")
+            reasons.append("Mükemmel uyum")
         elif score >= 7.0:
-            reasons.append("Sizin için çok uygun")
-        elif score >= 6.0:
-            reasons.append("Sizin için iyi seçim")
+            reasons.append("Çok uygun")
         else:
-            reasons.append("Alternatif seçenek")
+            reasons.append("İyi seçim")
         
-        # Kategori benzerliği
         if searched_product.get('main_category') == recommended_product.get('main_category'):
             reasons.append("Aynı kategori")
         
-        # Besin değerleri karşılaştırması
         if recommended_product.get('protein', 0) > searched_product.get('protein', 0):
             reasons.append("Daha yüksek protein")
-        
-        if recommended_product.get('fiber', 0) > searched_product.get('fiber', 0):
-            reasons.append("Daha yüksek fiber")
         
         if recommended_product.get('sugar', 0) < searched_product.get('sugar', 0):
             reasons.append("Daha az şeker")
         
-        if recommended_product.get('salt', 0) < searched_product.get('salt', 0):
-            reasons.append("Daha az tuz")
-        
-        # İşlenmişlik karşılaştırması
-        searched_processing = searched_product.get('processing_level', 3)
-        recommended_processing = recommended_product.get('processing_level', 3)
-        if recommended_processing < searched_processing:
-            reasons.append("Daha az işlenmiş")
-        
-        # Nutriscore karşılaştırması
-        searched_quality = searched_product.get('nutrition_quality_score', 5)
-        recommended_quality = recommended_product.get('nutrition_quality_score', 5)
-        if recommended_quality > searched_quality:
-            reasons.append("Daha iyi beslenme skoru")
-        
-        return " • ".join(reasons[:3]) if reasons else "ML tabanlı öneri"  # Maksimum 3 sebep
+        return " • ".join(reasons[:3])
 
     def _calculate_fallback_score(self, user_profile, product_data):
-        """
-        Model yoksa kullanılacak geliştirilmiş kural tabanlı skor
-        """
+        """Fallback skorlama"""
         base_score = 5.0
 
-        # Temel ürün kalitesi
         nutrition_quality = product_data.get('nutrition_quality_score', 5)
         base_score += (nutrition_quality - 5) * 0.4
 
-        # İşlenmişlik cezası
         processing_level = product_data.get('processing_level', 3)
         base_score -= (processing_level - 1) * 0.5
 
-        # Kullanıcı yaşına göre ayarlama
         age = user_profile.get('age', 30)
         if age > 65:
-            # Yaşlılar için düşük tuz ve yüksek fiber bonusu
             if product_data.get('salt', 0) < 0.5:
                 base_score += 0.5
             if product_data.get('fiber', 0) > 5:
                 base_score += 0.5
-        elif age < 25:
-            # Gençler için protein bonusu
-            if product_data.get('protein', 0) > 15:
-                base_score += 0.3
 
-        # BMI'ya göre ayarlama
         bmi = self._calculate_bmi(user_profile)
-        if bmi > 30:  # Obez
+        if bmi > 30:
             if product_data.get('energy_kcal', 0) < 200:
                 base_score += 0.8
-            if not product_data.get('is_high_sugar', 0):
-                base_score += 0.5
-        elif bmi < 18.5:  # Zayıf
-            if product_data.get('energy_kcal', 0) > 300:
-                base_score += 0.6
-
-        # Sağlık durumlarına göre ayarlama
-        medical_conditions = user_profile.get('medical_conditions', [])
-        for condition in medical_conditions:
-            if condition == 'diabetes_type_2':
-                if product_data.get('sugar', 0) < 5:
-                    base_score += 1.0
-                elif product_data.get('sugar', 0) > 15:
-                    base_score -= 2.0
-            elif condition == 'hyperthyroidism':
-                if product_data.get('salt', 0) < 0.5:
-                    base_score += 0.5
-                elif product_data.get('is_high_salt', 0):
-                    base_score -= 1.5
 
         return max(0, min(10, base_score))
 
     def _calculate_bmi(self, user_profile):
-        """BMI hesapla - user_profile'dan direkt al ya da hesapla"""
-        # Direkt BMI varsa kullan
+        """BMI hesapla"""
         if user_profile.get('bmi'):
             return user_profile['bmi']
         
-        # Yoksa hesapla
-        height = user_profile.get('height', 170)  # cm
-        weight = user_profile.get('weight', 70)   # kg
+        height = user_profile.get('height', 170)
+        weight = user_profile.get('weight', 70)
         
         if height and weight and height > 0:
             return round(weight / ((height/100) ** 2), 1)
         
-        # Varsayılan değer
-        age = user_profile.get('age', 30)
-        if age < 25:
-            return 22
-        elif age > 50:
-            return 26
-        return 24
+        return 24  # Varsayılan
 
     def _safe_float(self, value):
         """Güvenli float dönüşümü"""

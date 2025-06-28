@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'mathfilters',
     'django.contrib.humanize',
+    'django_extensions',
     'ckeditor',
     'ckeditor_uploader',
     'django_ckeditor_5',

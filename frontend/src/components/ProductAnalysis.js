@@ -1,8 +1,6 @@
 import React from 'react';
 
-
-
-// Uyarı Component'i - Backend'den gelen farklı uyarı tiplerini birleştirecek şekilde güncellendi.
+// Uyarı Component'i - Backend'den gelen yeni analiz yapısına göre güncellendi
 const WarningsSection = ({ warnings, onRefreshWarnings, loading }) => {
   const getSeverityIcon = (severity) => {
     switch (severity) {
@@ -40,13 +38,15 @@ const WarningsSection = ({ warnings, onRefreshWarnings, loading }) => {
     <div className="warnings-section">
       <div className="section-header">
         <h2>⚠️ Profilinize Özel Uyarılar ({warnings.length})</h2>
-        <button
-          onClick={onRefreshWarnings}
-          className="refresh-warnings-button"
-          disabled={loading}
-        >
-          🔄 Uyarıları Yenile
-        </button>
+        {onRefreshWarnings && (
+          <button
+            onClick={onRefreshWarnings}
+            className="refresh-warnings-button"
+            disabled={loading}
+          >
+            🔄 Uyarıları Yenile
+          </button>
+        )}
       </div>
 
       {warnings.map((warning, index) => (
@@ -81,7 +81,7 @@ const WarningsSection = ({ warnings, onRefreshWarnings, loading }) => {
   );
 };
 
-// Ana Analysis Component'i - Backend'in yeni API yapısına göre güncellendi.
+// Ana Analysis Component'i - Yeni backend API yapısına göre güncellendi
 const ProductAnalysis = ({
   productCode,
   loading,
@@ -92,8 +92,8 @@ const ProductAnalysis = ({
   userProfile,
   onLoginRedirect,
   onAnalyze,
-  onRefreshWarnings,
-  renderUserProfileInfo
+  axiosInstance,
+  useNewFormat = true
 }) => {
   // Giriş yapmamış kullanıcı için render
   if (!isAuthenticated) {
@@ -134,39 +134,39 @@ const ProductAnalysis = ({
     );
   }
 
-  // Helper function to get all warnings from the backend response
+  // Helper function to get all warnings from the new backend response structure
   const getAllWarnings = (result) => {
     if (!result) return [];
+    
+    // Yeni backend yapısı: result.analysis içinde tüm veriler var
+    const analysis = result.analysis || result;
     const allWarnings = [];
 
-    // Backend's old structure
-    if (result.warnings) {
-      allWarnings.push(...result.warnings);
+    // Farklı uyarı tiplerini topla
+    if (analysis.warnings) {
+      allWarnings.push(...analysis.warnings);
     }
-
-    // Backend's new detailed analysis structure
-    if (result.health_alerts) {
-      allWarnings.push(...result.health_alerts);
+    if (analysis.health_alerts) {
+      allWarnings.push(...analysis.health_alerts);
     }
-    if (result.allergen_alerts) {
-      allWarnings.push(...result.allergen_alerts);
+    if (analysis.allergen_alerts) {
+      allWarnings.push(...analysis.allergen_alerts);
     }
-    if (result.medical_alerts) {
-      allWarnings.push(...result.medical_alerts);
+    if (analysis.medical_alerts) {
+      allWarnings.push(...analysis.medical_alerts);
     }
-    if (result.dietary_warnings) {
-      allWarnings.push(...result.dietary_warnings);
+    if (analysis.dietary_warnings) {
+      allWarnings.push(...analysis.dietary_warnings);
     }
-    if (result.general_warnings) {
-      allWarnings.push(...result.general_warnings);
+    if (analysis.general_warnings) {
+      allWarnings.push(...analysis.general_warnings);
     }
     
-    // ML analysis warnings (if any)
-    if (result.ml_analysis?.warnings) {
-      allWarnings.push(...result.ml_analysis.warnings);
+    // ML analysis warnings
+    if (analysis.ml_analysis?.warnings) {
+      allWarnings.push(...analysis.ml_analysis.warnings);
     }
 
-    // Filter out duplicates if needed, but for now, just combine
     return allWarnings;
   };
 
@@ -205,7 +205,8 @@ const ProductAnalysis = ({
       'nutrition_score': 'Beslenme Skoru',
       'ingredient_score': 'İçerik Skoru',
       'allergen_score': 'Alerjen Skoru',
-      'personal_compatibility': 'Kişisel Uyumluluk'
+      'personal_compatibility': 'Kişisel Uyumluluk',
+      'overall_score': 'Genel Skor'
     };
     return labels[key] || key;
   };
@@ -221,31 +222,8 @@ const ProductAnalysis = ({
     return labels[key] || key;
   };
 
-  const getCompatibilityIcon = (status) => {
-    switch (status) {
-      case 'compatible':
-        return '✅';
-      case 'partially_compatible':
-        return '⚠️';
-      case 'incompatible':
-        return '❌';
-      default:
-        return '❓';
-    }
-  };
-
-  const getCompatibilityText = (status) => {
-    switch (status) {
-      case 'compatible':
-        return 'Uyumlu';
-      case 'partially_compatible':
-        return 'Kısmen Uyumlu';
-      case 'incompatible':
-        return 'Uyumsuz';
-      default:
-        return 'Bilinmiyor';
-    }
-  };
+  // Get analysis data from the new structure
+  const analysis = analysisResult?.analysis || analysisResult;
 
   // Ana analiz bölümü
   return (
@@ -265,7 +243,31 @@ const ProductAnalysis = ({
         </div>
 
         {/* Kullanıcı Profil Bilgileri */}
-        {renderUserProfileInfo && renderUserProfileInfo()}
+        {userProfile && (
+          <div className="user-profile-summary">
+            <h3>👤 Profil Özeti</h3>
+            <div className="profile-items">
+              {userProfile.medical_conditions && userProfile.medical_conditions.length > 0 && (
+                <div className="profile-item">
+                  <span className="profile-icon">🏥</span>
+                  <span>Sağlık Durumları: {userProfile.medical_conditions.join(', ')}</span>
+                </div>
+              )}
+              {userProfile.allergies && userProfile.allergies.length > 0 && (
+                <div className="profile-item">
+                  <span className="profile-icon">🚫</span>
+                  <span>Alerjiler: {userProfile.allergies.join(', ')}</span>
+                </div>
+              )}
+              {userProfile.health_goals && userProfile.health_goals.length > 0 && (
+                <div className="profile-item">
+                  <span className="profile-icon">🎯</span>
+                  <span>Hedefler: {userProfile.health_goals.join(', ')}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Analiz Hatası */}
         {analysisError && (
@@ -287,27 +289,45 @@ const ProductAnalysis = ({
         )}
 
         {/* Analiz Sonuçları */}
-        {analysisResult && !analysisLoading && (
+        {analysis && !analysisLoading && (
           <div className="analysis-results">
-            {/* ML Analysis Score - Backend'deki yapıya uygun */}
-            {analysisResult.ml_analysis && (
+            
+            {/* Overall Suitability Score */}
+            {analysis.is_suitable !== undefined && (
+              <div className="overall-suitability-section">
+                <h3>✅ Uygunluk Değerlendirmesi</h3>
+                <div className={`suitability-badge ${analysis.is_suitable ? 'suitable' : 'unsuitable'}`}>
+                  {analysis.is_suitable ? '✅ Sizin İçin Uygun' : '❌ Sizin İçin Uygun Değil'}
+                </div>
+                {analysis.summary && (
+                  <p className="suitability-summary">{analysis.summary}</p>
+                )}
+              </div>
+            )}
+
+            {/* ML Analysis Score */}
+            {analysis.ml_analysis && (
               <div className="ml-analysis-section">
                 <h3>🤖 AI Destekli Analiz</h3>
-                <div
-                  className={`score-display score-${getMLScoreClass(
-                    analysisResult.ml_analysis.personalized_score
-                  )}`}
-                >
-                  <div className="score-number">
-                    {analysisResult.ml_analysis.personalized_score.toFixed(1)}/10
+                {analysis.ml_analysis.personalized_score !== undefined && (
+                  <div
+                    className={`score-display score-${getMLScoreClass(
+                      analysis.ml_analysis.personalized_score
+                    )}`}
+                  >
+                    <div className="score-number">
+                      {analysis.ml_analysis.personalized_score.toFixed(1)}/10
+                    </div>
+                    <div className="score-text">
+                      {getMLScoreText(analysis.ml_analysis.personalized_score)}
+                    </div>
                   </div>
-                  <div className="score-text">
-                    {getMLScoreText(analysisResult.ml_analysis.personalized_score)}
-                  </div>
-                </div>
-                {analysisResult.ml_analysis.score_level && (
+                )}
+                
+                {analysis.ml_analysis.score_breakdown && (
                   <div className="score-breakdown">
-                    {Object.entries(analysisResult.ml_analysis.score_level).map(([key, value]) => (
+                    <h4>📊 Skor Detayları</h4>
+                    {Object.entries(analysis.ml_analysis.score_breakdown).map(([key, value]) => (
                       <div key={key} className="score-item">
                         <span className="score-label">{formatScoreLabel(key)}:</span>
                         <span className="score-value">
@@ -317,10 +337,11 @@ const ProductAnalysis = ({
                     ))}
                   </div>
                 )}
-                {analysisResult.ml_analysis.analysis && (
+
+                {analysis.ml_analysis.detailed_analysis && (
                   <div className="ml-analysis-details">
                     <h4>🔍 Detaylı Analiz</h4>
-                    {Object.entries(analysisResult.ml_analysis.analysis).map(([key, value]) => (
+                    {Object.entries(analysis.ml_analysis.detailed_analysis).map(([key, value]) => (
                       <div key={key} className="analysis-detail">
                         <strong>{formatAnalysisLabel(key)}:</strong> {value}
                       </div>
@@ -330,61 +351,62 @@ const ProductAnalysis = ({
               </div>
             )}
 
-            {/* Overall Suitability Score (Rule-based analysis) - Using a dedicated field from the backend */}
-            {analysisResult.is_suitable !== undefined && (
-              <div className="overall-suitability-section">
-                <h3>✅ Uygunluk Değerlendirmesi</h3>
-                <div className={`suitability-badge ${analysisResult.is_suitable ? 'suitable' : 'unsuitable'}`}>
-                  {analysisResult.is_suitable ? '✅ Sizin İçin Uygun' : '❌ Sizin İçin Uygun Değil'}
+            {/* Overall Score (Rule-based) */}
+            {analysis.overall_score !== undefined && (
+              <div className="overall-score-section">
+                <h3>📊 Genel Skor</h3>
+                <div className={`score-display score-${getScoreClass(analysis.overall_score)}`}>
+                  <div className="score-number">
+                    {analysis.overall_score}/100
+                  </div>
+                  <div className="score-text">
+                    {getScoreText(analysis.overall_score)}
+                  </div>
                 </div>
-                {analysisResult.summary && (
-                  <p className="suitability-summary">{analysisResult.summary}</p>
-                )}
               </div>
             )}
 
-            {/* Uyarılar Section - Backend'den gelen tüm uyarıları göster */}
+            {/* Uyarılar Section */}
             <WarningsSection
               warnings={getAllWarnings(analysisResult)}
-              onRefreshWarnings={onRefreshWarnings}
               loading={analysisLoading}
             />
 
             {/* Beslenme Analizi */}
-            {analysisResult.nutritional_analysis && Object.keys(analysisResult.nutritional_analysis).length > 0 && (
+            {analysis.nutritional_analysis && Object.keys(analysis.nutritional_analysis).length > 0 && (
               <div className="nutrition-analysis-section">
                 <h3>🥗 Beslenme Analizi</h3>
                 <div className="nutrition-insights">
-                  {analysisResult.nutritional_analysis.positive_aspects &&
-                    analysisResult.nutritional_analysis.positive_aspects.length > 0 && (
+                  {analysis.nutritional_analysis.positive_aspects &&
+                    analysis.nutritional_analysis.positive_aspects.length > 0 && (
                       <div className="positive-aspects">
                         <h4>✅ Olumlu Yönler</h4>
                         <ul>
-                          {analysisResult.nutritional_analysis.positive_aspects.map((aspect, index) => (
+                          {analysis.nutritional_analysis.positive_aspects.map((aspect, index) => (
                             <li key={index}>{aspect}</li>
                           ))}
                         </ul>
                       </div>
                     )}
 
-                  {analysisResult.nutritional_analysis.concerns &&
-                    analysisResult.nutritional_analysis.concerns.length > 0 && (
+                  {analysis.nutritional_analysis.concerns &&
+                    analysis.nutritional_analysis.concerns.length > 0 && (
                       <div className="nutrition-concerns">
                         <h4>⚠️ Dikkat Edilmesi Gerekenler</h4>
                         <ul>
-                          {analysisResult.nutritional_analysis.concerns.map((concern, index) => (
+                          {analysis.nutritional_analysis.concerns.map((concern, index) => (
                             <li key={index}>{concern}</li>
                           ))}
                         </ul>
                       </div>
                     )}
 
-                  {analysisResult.nutritional_analysis.recommendations &&
-                    analysisResult.nutritional_analysis.recommendations.length > 0 && (
+                  {analysis.nutritional_analysis.recommendations &&
+                    analysis.nutritional_analysis.recommendations.length > 0 && (
                       <div className="nutrition-recommendations">
                         <h4>💡 Öneriler</h4>
                         <ul>
-                          {analysisResult.nutritional_analysis.recommendations.map((rec, index) => (
+                          {analysis.nutritional_analysis.recommendations.map((rec, index) => (
                             <li key={index}>{rec}</li>
                           ))}
                         </ul>
@@ -395,11 +417,11 @@ const ProductAnalysis = ({
             )}
 
             {/* Diyet Uyumluluğu */}
-            {analysisResult.dietary_compliance && Object.keys(analysisResult.dietary_compliance).length > 0 && (
+            {analysis.dietary_compliance && Object.keys(analysis.dietary_compliance).length > 0 && (
               <div className="dietary-compliance-section">
                 <h3>🍽️ Diyet Uyumluluğu</h3>
                 <div className="compliance-list">
-                  {Object.entries(analysisResult.dietary_compliance).map(([diet, status]) => (
+                  {Object.entries(analysis.dietary_compliance).map(([diet, status]) => (
                     <div key={diet} className={`compliance-item status-${status}`}>
                       <span className="compliance-icon">
                         {status === 'compliant' ? '✅' : status === 'non_compliant' ? '❌' : '❓'}
@@ -412,14 +434,14 @@ const ProductAnalysis = ({
             )}
 
             {/* Kişiselleştirilmiş Öneriler */}
-            {analysisResult.recommendations && analysisResult.recommendations.length > 0 && (
+            {analysis.recommendations && analysis.recommendations.length > 0 && (
               <div className="personalized-recommendations-section">
                 <h3>💫 Kişiselleştirilmiş Öneriler</h3>
                 <div className="recommendations-list">
-                  {analysisResult.recommendations.map((recommendation, index) => (
+                  {analysis.recommendations.map((recommendation, index) => (
                     <div key={index} className="recommendation-item">
-                      <h4>{recommendation.title}</h4>
-                      <p>{recommendation.description}</p>
+                      <h4>{recommendation.title || `Öneri ${index + 1}`}</h4>
+                      <p>{recommendation.description || recommendation.message || recommendation}</p>
                       {recommendation.action && (
                         <div className="recommendation-action">
                           <strong>Önerilen Aksiyon:</strong> {recommendation.action}
@@ -431,7 +453,7 @@ const ProductAnalysis = ({
               </div>
             )}
 
-            {/* User Profile Usage Info - Backend'den gelen bilgi */}
+            {/* User Profile Usage Info */}
             {analysisResult.user_profile_used && (
               <div className="profile-usage-info">
                 <h3>👤 Kullanılan Profil Bilgileri</h3>
@@ -452,21 +474,21 @@ const ProductAnalysis = ({
               </div>
             )}
 
-            {/* Analysis Type Info - Backend'den gelen tip bilgisi */}
+            {/* Analysis Type Info */}
             <div className="analysis-info">
               <small>
                 📊 Analiz Türü: {
-                  analysisResult.analysis_type === 'ml_based'
+                  analysis.analysis_type === 'ml_based'
                     ? 'AI Destekli Analiz'
-                    : analysisResult.analysis_type === 'hybrid'
+                    : analysis.analysis_type === 'hybrid'
                     ? 'Hibrit Analiz (AI + Kural)'
                     : 'Kural Tabanlı Analiz'
                 }
                 {analysisResult.product && (
                   <span> | 🏷️ Ürün: {analysisResult.product.product_name || 'Bilinmeyen'}</span>
                 )}
-                {analysisResult.confidence_score && (
-                   <span> | ✨ Güven Seviyesi: %{analysisResult.confidence_score}</span>
+                {analysis.confidence_score && (
+                   <span> | ✨ Güven Seviyesi: %{analysis.confidence_score}</span>
                 )}
               </small>
             </div>

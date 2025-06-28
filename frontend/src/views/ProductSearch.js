@@ -59,30 +59,33 @@ function ProductSearch() {
   };
 
   const handleSearch = async () => {
-    if (query.trim() === '') {
-      setError('Lütfen bir ürün adı girin.');
-      return;
+  if (query.trim() === '') {
+    setError('Lütfen bir ürün adı girin.');
+    return;
+  }
+
+  setLoading(true);
+  setError(null);
+
+  try {
+    const queryParams = buildQueryParams();
+    // URL'yi backend ile uyumlu hale getir
+    const response = await axios.get(`http://localhost:8000/api/products/search/?${queryParams}`);
+    
+    if (response.data && response.data.products && response.data.products.length > 0) {
+      setProducts(response.data.products);
+    } else {
+      setError('Ürün bulunamadı.');
     }
 
-    setLoading(true);
-    setError(null);
+  } catch (err) {
+    setError('Veri alınırken hata oluştu.');
+    console.error('API Error:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
-    try {
-      const queryParams = buildQueryParams();
-      const response = await axios.get(`http://localhost:8000/api/products/product-search/?${queryParams}`);
-      
-      if (response.data && response.data.products && response.data.products.length > 0) {
-        setProducts(response.data.products);
-      } else {
-        setError('Ürün bulunamadı.');
-      }
-
-    } catch (err) {
-      setError('Veri alınırken hata oluştu.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleFilterChange = (e) => {
     const { name, value, type, checked } = e.target;

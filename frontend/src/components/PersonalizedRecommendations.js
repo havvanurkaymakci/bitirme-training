@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import '../styles/PersonalizedRecommendations.css';
 
 const PersonalizedRecommendations = ({ 
@@ -9,17 +8,21 @@ const PersonalizedRecommendations = ({
   onProductClick,
   showAlternatives = true,
   showSimilar = true,
-  autoLoad = true
+  autoLoad = true,
+  axiosInstance, // useAxios instance from parent
+  useMLEndpoint = true // Use new ML endpoints
 }) => {
   // ✅ DEBUG: Props kontrolü
   console.log('🔍 PersonalizedRecommendations Props:', {
     product: product ? 'Product exists' : 'Product is null/undefined',
-    productName: product?.product_name || 'No name',
+    productName: product?.product_name || product?.name || 'No name',
+    productCode: product?.product_code || product?.code || product?.id,
     isAuthenticated,
     userProfile: userProfile ? 'Profile exists' : 'No profile',
     showAlternatives,
     showSimilar,
-    autoLoad
+    autoLoad,
+    useMLEndpoint
   });
 
   const [recommendations, setRecommendations] = useState([]);
@@ -29,112 +32,69 @@ const PersonalizedRecommendations = ({
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('alternatives');
 
-  // ✅ In-memory auth token storage
-  const [authToken, setAuthToken] = useState(null);
-
   useEffect(() => {
-    // Token'ı localStorage'dan al (sadece bir kere)
-    try {
-      const token = localStorage.getItem('authTokens');
-      if (token) {
-        const tokens = JSON.parse(token);
-        setAuthToken(tokens.access);
-      }
-    } catch (error) {
-      console.error('Token parse error:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isAuthenticated && product && userProfile && autoLoad && authToken) {
+    if (isAuthenticated && product && userProfile && autoLoad && axiosInstance) {
       loadRecommendations();
     }
-  }, [isAuthenticated, product, userProfile, autoLoad, authToken]);
+  }, [isAuthenticated, product, userProfile, autoLoad, axiosInstance]);
 
-  // Backend URL'leri için helper function
+  // ✅ Backend API URLs - Updated for new structure
   const getApiUrl = (endpoint) => {
-    const baseUrl = 'http://localhost:8000/api/products';
-    return `${baseUrl}/${endpoint}`;
+    return `/products/${endpoint}`;
   };
 
-  // ✅ Token helper function - in-memory storage kullanımı
-  const getAuthHeaders = () => {
-    if (!authToken) return null;
-    
-    return {
-      'Authorization': `Bearer ${authToken}`,
-      'Content-Type': 'application/json'
-    };
-  };
-
-  // ✅ DÜZELTME: Ana önerileri yükle - Backend endpoint'leriyle uyumlu
+  // ✅ UPDATED: Load recommendations using new ML endpoints
   const loadRecommendations = async () => {
-    if (!product || !isAuthenticated || !userProfile || !authToken) return;
+    if (!product || !isAuthenticated || !userProfile || !axiosInstance) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const headers = getAuthHeaders();
-      if (!headers) {
-        throw new Error('Authentication failed');
-      }
-
       const productCode = product.product_code || product.code || product.id;
       if (!productCode) {
-        console.warn('Product code not found, fetching general recommendations.');
+        console.warn('Product code not found');
+        setError('Ürün kodu bulunamadı');
+        return;
       }
       
       const promises = [];
 
-      // 1. ✅ ML tabanlı alternatifler (ürüne özel) - GET request
-      if (showAlternatives && productCode) {
+      // 1. ✅ ML-based alternatives (product-specific) - Updated API call
+      if (showAlternatives) {
         promises.push(
-          axios.get(
-            getApiUrl('ml-recommendations/'),
-            { 
-              headers,
-              params: {
-                product_code: productCode,
-                limit: 5,
-                min_score: 6.0
-              }
+          axiosInstance.get(getApiUrl('ml-recommendations/'), {
+            params: {
+              product_code: productCode,
+              limit: 5,
+              min_score: 6.0
             }
-          ).then(response => ({type: 'alternatives', data: response.data}))
+          }).then(response => ({type: 'alternatives', data: response.data}))
         );
       }
 
-      // 2. ✅ ML tabanlı genel öneriler - GET request
+      // 2. ✅ ML-based general recommendations - Updated API call
       if (showSimilar) {
+        const categories = product.main_category || product.categories || product.category || '';
         promises.push(
-          axios.get(
-            getApiUrl('ml-recommendations/'),
-            { 
-              headers,
-              params: {
-                limit: 6,
-                categories: product.main_category || product.categories || '',
-                min_score: 6.0
-              }
+          axiosInstance.get(getApiUrl('ml-recommendations/'), {
+            params: {
+              limit: 6,
+              categories: categories,
+              min_score: 6.0
             }
-          ).then(response => ({type: 'recommendations', data: response.data}))
+          }).then(response => ({type: 'recommendations', data: response.data}))
         );
       }
       
-      // 3. ✅ Kişiselleştirilmiş skor - GET request (backend'deki endpoint'e göre)
-      if (productCode) {
-        promises.push(
-          axios.get(
-            getApiUrl('personalized-score/'),
-            { 
-              headers,
-              params: {
-                product_code: productCode
-              }
-            }
-          ).then(response => ({type: 'score', data: response.data}))
-        );
-      }
+      // 3. ✅ Personalized score - Updated API call
+      promises.push(
+        axiosInstance.get(getApiUrl('personalized-score/'), {
+          params: {
+            product_code: productCode
+          }
+        }).then(response => ({type: 'score', data: response.data}))
+      );
 
       const results = await Promise.allSettled(promises);
 
@@ -144,24 +104,24 @@ const PersonalizedRecommendations = ({
           
           switch(type) {
             case 'alternatives':
-              // Backend'den gelen response yapısına göre düzeltme
+              // ✅ Handle new backend response structure
               if (data.type === 'alternatives' && data.alternatives) {
                 setAlternatives(data.alternatives);
                 console.log('✅ Alternatives loaded:', data.alternatives.length);
-              } else if (data.recommendations) {
-                // Eğer genel öneri dönerse alternatif olarak kullan
+              } else if (data.type === 'personalized' && data.recommendations) {
+                // If general recommendations returned, use as alternatives
                 setAlternatives(data.recommendations);
-                console.log('✅ Alternatives (from recommendations) loaded:', data.recommendations.length);
+                console.log('✅ Alternatives (from general) loaded:', data.recommendations.length);
               }
               break;
               
             case 'recommendations':
-              // Backend'den gelen response yapısına göre düzeltme
+              // ✅ Handle new backend response structure
               if (data.type === 'personalized' && data.recommendations) {
                 setRecommendations(data.recommendations);
                 console.log('✅ Recommendations loaded:', data.recommendations.length);
-              } else if (data.alternatives) {
-                // Eğer alternatif dönerse öneri olarak kullan
+              } else if (data.type === 'alternatives' && data.alternatives) {
+                // If alternatives returned, use as recommendations
                 setRecommendations(data.alternatives);
                 console.log('✅ Recommendations (from alternatives) loaded:', data.alternatives.length);
               }
@@ -174,12 +134,13 @@ const PersonalizedRecommendations = ({
           }
         } else {
           const errorTypes = ['alternatives', 'recommendations', 'score'];
-          console.error(`❌ ${errorTypes[index]} yükleme hatası:`, result.reason?.response?.data || result.reason?.message);
+          const errorType = errorTypes[Math.min(index, errorTypes.length - 1)];
+          console.error(`❌ ${errorType} loading error:`, result.reason?.response?.data || result.reason?.message);
         }
       });
       
     } catch (error) {
-      console.error('❌ Öneriler yükleme hatası:', error);
+      console.error('❌ Recommendations loading error:', error);
       setError(
         error.response?.data?.error || 
         error.response?.data?.message ||
@@ -191,29 +152,24 @@ const PersonalizedRecommendations = ({
     }
   };
 
-  // ✅ Ürün karşılaştırması yap - POST request (backend endpoint'ine uygun)
+  // ✅ Updated product comparison - using axiosInstance
   const compareProducts = async (productCodes) => {
-    if (!isAuthenticated || productCodes.length < 2 || !authToken) return;
+    if (!isAuthenticated || productCodes.length < 2 || !axiosInstance) return;
 
     try {
-      const headers = getAuthHeaders();
-      if (!headers) return null;
+      const response = await axiosInstance.post(getApiUrl('compare/'), {
+        product_codes: productCodes
+      });
 
-      const response = await axios.post(
-        getApiUrl('compare/'),
-        { product_codes: productCodes },
-        { headers }
-      );
-
-      console.log('✅ Karşılaştırma sonucu:', response.data);
+      console.log('✅ Comparison result:', response.data);
       return response.data;
     } catch (error) {
-      console.error('❌ Karşılaştırma hatası:', error);
+      console.error('❌ Comparison error:', error);
       return null;
     }
   };
 
-  // Sağlık uygunluk skoru rengini belirle
+  // Health score color determination
   const getHealthScoreColor = (score) => {
     const normalizedScore = score <= 10 ? score * 10 : score;
     
@@ -224,7 +180,7 @@ const PersonalizedRecommendations = ({
     return 'very-poor';
   };
 
-  // ✅ Ürün kartı render - Backend'den gelen veri yapısına uygun
+  // ✅ Updated product card render - Compatible with new backend response structure
   const renderProductCard = (product, index, isAlternative = false) => {
     const productCode = product.product_code || product.code || product.id;
     
@@ -238,7 +194,7 @@ const PersonalizedRecommendations = ({
           {product.image_url ? (
             <img 
               src={product.image_url} 
-              alt={product.product_name}
+              alt={product.product_name || product.name}
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextSibling.style.display = 'block';
@@ -251,10 +207,10 @@ const PersonalizedRecommendations = ({
         </div>
         
         <div className="product-info">
-          <h4 className="product-name">{product.product_name}</h4>
+          <h4 className="product-name">{product.product_name || product.name}</h4>
           <p className="product-brand">{product.brands || product.brand}</p>
           
-          {/* ✅ Backend'den gelen score alanlarına göre düzeltme */}
+          {/* ✅ Updated score handling for new backend response */}
           {(product.final_score || product.ml_score || product.personalized_score || product.target_score) && (
             <div className={`health-score ${getHealthScoreColor(
               product.final_score || product.ml_score || product.personalized_score || product.target_score
@@ -271,34 +227,30 @@ const PersonalizedRecommendations = ({
             </div>
           )}
           
-          {/* ✅ Backend'den gelen reason alanlarına göre düzeltme */}
-          {(product.reason || product.recommendation_reason || product.match_reasons) && (
+          {/* ✅ Updated reason handling for new backend response */}
+          {(product.reason || product.recommendation_reason) && (
             <div className="match-reasons">
               <small>
-                💡 {product.reason || product.recommendation_reason || 
-                     (Array.isArray(product.match_reasons) ? 
-                      product.match_reasons.slice(0, 2).join(', ') : product.match_reasons)}
-                {product.match_reasons && Array.isArray(product.match_reasons) && product.match_reasons.length > 2 && '...'}
+                💡 {product.reason || product.recommendation_reason}
               </small>
             </div>
           )}
           
-          {/* ✅ İyileştirme alanları (alternatifler için) */}
-          {isAlternative && (product.improvement_areas || product.score_improvement) && (
-            <div className="improvement-areas">
-              <small>
-                ✨ İyileştirme: {product.improvement_areas || 
-                  (product.score_improvement ? `+${Math.round(product.score_improvement * 10)} puan` : '')}
-              </small>
-            </div>
-          )}
-          
-          {/* ✅ Sağlık faydaları (öneriler için) */}
+          {/* ✅ Health benefits for recommendations */}
           {!isAlternative && product.health_benefits && Array.isArray(product.health_benefits) && (
             <div className="health-benefits">
               <small>
                 🌱 Faydalar: {product.health_benefits.slice(0, 2).join(', ')}
                 {product.health_benefits.length > 2 && '...'}
+              </small>
+            </div>
+          )}
+          
+          {/* ✅ Score improvement for alternatives */}
+          {isAlternative && product.score_improvement && (
+            <div className="improvement-areas">
+              <small>
+                ✨ İyileştirme: +{Math.round(product.score_improvement * 10)} puan
               </small>
             </div>
           )}
@@ -345,7 +297,7 @@ const PersonalizedRecommendations = ({
     );
   };
 
-  // Yükleme Component'i
+  // Loading Component
   const LoadingComponent = () => (
     <div className="recommendations-loading">
       <div className="loading-spinner"></div>
@@ -354,7 +306,7 @@ const PersonalizedRecommendations = ({
     </div>
   );
 
-  // Hata Component'i
+  // Error Component
   const ErrorComponent = ({ error, onRetry }) => (
     <div className="recommendations-error">
       <h3>❌ Öneriler Yüklenemedi</h3>
@@ -370,7 +322,7 @@ const PersonalizedRecommendations = ({
     </div>
   );
 
-  // ✅ Kişiselleştirilmiş skor Section - Backend response yapısına uygun
+  // ✅ Updated Personalized Score Section - Compatible with new backend response
   const PersonalizedScoreSection = () => {
     if (!personalizedScore) return null;
 
@@ -388,40 +340,36 @@ const PersonalizedRecommendations = ({
           <div className="score-explanation">
             <p>Bu ürün sizin profilinize <strong>{Math.round(normalizedScore)}%</strong> uygun.</p>
             
-            {/* ✅ Backend'den gelen analysis yapısına göre düzeltme */}
-            {(personalizedScore.analysis?.health_match_reasons || 
-              personalizedScore.health_match_reasons || 
-              personalizedScore.match_reasons) && (
+            {/* ✅ Updated analysis handling for new backend response */}
+            {personalizedScore.analysis && (
               <div className="match-reasons-detailed">
                 <h4>🎯 Uygunluk Nedenleri:</h4>
-                <ul>
-                  {(personalizedScore.analysis?.health_match_reasons || 
-                    personalizedScore.health_match_reasons || 
-                    personalizedScore.match_reasons || []).map((reason, index) => (
-                    <li key={index}>{reason}</li>
-                  ))}
-                </ul>
+                {personalizedScore.analysis.health_match_reasons && (
+                  <ul>
+                    {personalizedScore.analysis.health_match_reasons.map((reason, index) => (
+                      <li key={index}>{reason}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </div>
         </div>
         
-        {/* ✅ Score breakdown section */}
-        {(personalizedScore.score_level || personalizedScore.breakdown) && (
+        {/* ✅ Updated score breakdown for new backend response */}
+        {personalizedScore.score_level && (
           <div className="score-breakdown">
             <h4>📈 Detaylı Değerlendirme:</h4>
             
-            {personalizedScore.score_level && (
-              <div className="score-level-info">
-                <span className={`level-badge ${personalizedScore.score_level.level}`}>
-                  {personalizedScore.score_level.description || personalizedScore.score_level.level}
-                </span>
-              </div>
-            )}
+            <div className="score-level-info">
+              <span className={`level-badge ${personalizedScore.score_level.level || 'moderate'}`}>
+                {personalizedScore.score_level.description || personalizedScore.score_level.level || 'Orta'}
+              </span>
+            </div>
             
-            {(personalizedScore.score_level?.breakdown || personalizedScore.breakdown) && (
+            {personalizedScore.score_level.breakdown && (
               <div className="breakdown-grid">
-                {Object.entries(personalizedScore.score_level?.breakdown || personalizedScore.breakdown).map(([key, value]) => (
+                {Object.entries(personalizedScore.score_level.breakdown).map(([key, value]) => (
                   <div key={key} className="breakdown-item">
                     <span className="breakdown-label">{key}:</span>
                     <span className="breakdown-value">
@@ -439,7 +387,7 @@ const PersonalizedRecommendations = ({
     );
   };
 
-  // Alternatif ürünler section
+  // Alternatives section
   const AlternativesSection = () => {
     if (!showAlternatives || alternatives.length === 0) {
       return (
@@ -467,7 +415,7 @@ const PersonalizedRecommendations = ({
     );
   };
 
-  // Benzer ürünler section
+  // Similar products section
   const SimilarProductsSection = () => {
     if (!showSimilar || recommendations.length === 0) {
       return (
@@ -527,7 +475,7 @@ const PersonalizedRecommendations = ({
     </div>
   );
 
-  // Profil Bekleme Section
+  // Profile waiting section
   const WaitingForProfileSection = () => (
     <div className="waiting-profile-section">
       <h2>🎯 Kişiselleştirilmiş Öneriler</h2>
@@ -537,7 +485,7 @@ const PersonalizedRecommendations = ({
     </div>
   );
 
-  // Boş durum Section
+  // Empty state section
   const EmptyStateSection = () => (
     <div className="empty-recommendations">
       <h3>🔍 Henüz Öneri Bulunamadı</h3>

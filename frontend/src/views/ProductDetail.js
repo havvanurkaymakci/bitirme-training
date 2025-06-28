@@ -1,4 +1,4 @@
-// ProductDetail.js - useAxios hook'u ile optimize edilmiş versiyon
+// ProductDetail.js - Backend URL değişikliklerine göre güncellenmiş versiyon
 
 import '../styles/ProductDetail.css';
 import React, { useState, useEffect, useCallback, useContext } from 'react';
@@ -11,12 +11,11 @@ import ProductAnalysis from '../components/ProductAnalysis';
 import PersonalizedRecommendations from '../components/PersonalizedRecommendations';
 import ComprehensiveProductInfo from '../components/ComprehensiveProductInfo';
 import ProductWarnings from '../components/ProductWarnings';
-import NutritionalRecommendations from '../components/NutritionalRecommendations';
 
 const ProductDetail = () => {
   // Hooks
   const { user, authTokens } = useContext(AuthContext);
-  const axiosInstance = useAxios(); // useAxios hook'u kullanılıyor
+  const axiosInstance = useAxios();
   const { barcode, productCode } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,10 +36,6 @@ const ProductDetail = () => {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [analysisError, setAnalysisError] = useState(null);
   const [productError, setProductError] = useState(null);
-  
-  // NutritionalRecommendations için state'ler
-  const [nutritionalWarnings, setNutritionalWarnings] = useState([]);
-  const [nutritionalRecommendations, setNutritionalRecommendations] = useState([]);
 
   // Barcode'u resolve et
   const resolvedBarcode = barcode || productCode || location.state?.product?.code || location.state?.product?.product_code;
@@ -67,7 +62,7 @@ const ProductDetail = () => {
     }
   }, [user, authTokens, axiosInstance]);
 
-  // Ürünü backend'den getir
+  // Ürünü backend'den getir - YENİ URL
   const fetchProductFromBackend = useCallback(async (code) => {
     if (!code) {
       setProductError('Ürün kodu bulunamadı');
@@ -80,19 +75,13 @@ const ProductDetail = () => {
     
     try {
       console.log('📡 Fetching product:', code);
-      const response = await axiosInstance.get(`/products/product-detail/${code}/`);
+      // YENİ URL: /products/detail/{code}/
+      const response = await axiosInstance.get(`/products/detail/${code}/`);
       
       if (response.data) {
-        if (response.data.product) {
-          setProduct(response.data.product);
-          if (response.data.user_analysis) {
-            setAnalysisResult(response.data.user_analysis);
-          }
-        } else if (response.data.product_name || response.data.code) {
-          setProduct(response.data);
-        } else {
-          setProductError('Ürün bulunamadı');
-        }
+        // Backend sadece ürün verisini dönüyor
+        setProduct(response.data);
+        console.log('✅ Product loaded successfully');
       } else {
         setProductError('Ürün bulunamadı');
       }
@@ -112,7 +101,7 @@ const ProductDetail = () => {
     }
   }, [axiosInstance]);
 
-  // Ürün analizi
+  // Kapsamlı ürün analizi - YENİ FORMAT
   const analyzeProduct = useCallback(async () => {
     if (!product || !user) {
       console.log('🧠 Skipping analysis - missing requirements');
@@ -123,25 +112,16 @@ const ProductDetail = () => {
     setAnalysisError(null);
 
     try {
-      console.log('🧠 Starting product analysis...');
+      console.log('🧠 Starting complete product analysis...');
       
-      const productData = {
-        code: product.code || product.product_code,
-        product_name: product.product_name,
-        brand: product.brand,
-        ingredients: product.ingredients,
-        nutrition_facts: product.nutrition_facts,
-        ...product
-      };
-      
+      // YENİ FORMAT: POST /products/analyze/ ile product_code gönder
       const requestPayload = { 
-        product_data: productData,
-        user_profile: userProfile
+        product_code: product.code || product.product_code
       };
       
       const response = await axiosInstance.post('/products/analyze/', requestPayload);
 
-      console.log('✅ Analysis response received');
+      console.log('✅ Complete analysis response received');
       setAnalysisResult(response.data);
       
     } catch (error) {
@@ -150,32 +130,7 @@ const ProductDetail = () => {
     } finally {
       setAnalysisLoading(false);
     }
-  }, [product, user, userProfile, axiosInstance]);
-
-  // NutritionalRecommendations callback'leri
-  const handleWarningGenerated = useCallback((warning) => {
-    setNutritionalWarnings(prev => {
-      const exists = prev.some(w => 
-        w.title === warning.title && w.message === warning.message
-      );
-      if (!exists) {
-        return [...prev, warning];
-      }
-      return prev;
-    });
-  }, []);
-
-  const handleRecommendationGenerated = useCallback((recommendation) => {
-    setNutritionalRecommendations(prev => {
-      const exists = prev.some(r => 
-        r.title === recommendation.title && r.message === recommendation.message
-      );
-      if (!exists) {
-        return [...prev, recommendation];
-      }
-      return prev;
-    });
-  }, []);
+  }, [product, user, axiosInstance]);
 
   // Navigation handlers
   const handleLoginRedirect = () => {
@@ -204,8 +159,6 @@ const ProductDetail = () => {
       setAnalysisResult(null);
       setAnalysisError(null);
       setProductError(null);
-      setNutritionalWarnings([]);
-      setNutritionalRecommendations([]);
       
       // URL'i güncelle
       navigate(`/product/${newBarcode}`, {
@@ -314,17 +267,6 @@ const ProductDetail = () => {
         </button>
       </div>
 
-      {/* NutritionalRecommendations */}
-      {product && (
-        <NutritionalRecommendations
-          product={product}
-          userProfile={userProfile}
-          onWarningGenerated={handleWarningGenerated}
-          onRecommendationGenerated={handleRecommendationGenerated}
-          axiosInstance={axiosInstance} // useAxios instance'ı geçiliyor
-        />
-      )}
-
       <div className="product-detail-content">
         {/* Ana Ürün Bilgileri */}
         <ComprehensiveProductInfo 
@@ -332,45 +274,15 @@ const ProductDetail = () => {
           analysisResult={analysisResult}
         />
 
-        {/* Beslenme Uyarıları ve Önerileri */}
-        {(nutritionalWarnings.length > 0 || nutritionalRecommendations.length > 0) && (
-          <div className="nutritional-insights">
-            {nutritionalWarnings.length > 0 && (
-              <div className="nutritional-warnings">
-                <h3>⚠️ Beslenme Uyarıları</h3>
-                {nutritionalWarnings.map((warning, index) => (
-                  <div key={index} className={`warning-item ${warning.type} ${warning.severity}`}>
-                    <h4>{warning.title}</h4>
-                    <p>{warning.message}</p>
-                    {warning.details && <small>{warning.details}</small>}
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {nutritionalRecommendations.length > 0 && (
-              <div className="nutritional-recommendations">
-                <h3>💡 Beslenme Önerileri</h3>
-                {nutritionalRecommendations.map((recommendation, index) => (
-                  <div key={index} className={`recommendation-item ${recommendation.type}`}>
-                    <h4>{recommendation.title}</h4>
-                    <p>{recommendation.message}</p>
-                    {recommendation.details && <small>{recommendation.details}</small>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Ürün Uyarıları */}
         {user && product && (
-          <ProductWarnings
-            product={product}
-            showFullAnalysis={true}
-            autoLoad={true}
-            axiosInstance={axiosInstance}
-          />
+          <div className="product-warnings-section">
+            <h3>Kişiselleştirilmiş Uyarılar</h3>
+            <ProductWarnings
+              productCode={product?.code || product?.product_code}
+              axiosInstance={axiosInstance}
+              isModal={false} // Modal olarak değil, inline component olarak
+            />
+          </div>
         )}
 
         {/* Kişiselleştirilmiş Ürün Analizi */}
@@ -385,6 +297,7 @@ const ProductDetail = () => {
           onLoginRedirect={handleLoginRedirect}
           onAnalyze={analyzeProduct}
           axiosInstance={axiosInstance}
+          useNewFormat={true} // Yeni backend formatını kullan
         />
 
         {/* Analysis Error Handling */}
@@ -405,7 +318,7 @@ const ProductDetail = () => {
           </div>
         )}
 
-        {/* Kişiselleştirilmiş Öneriler */}
+        {/* Kişiselleştirilmiş Öneriler - YENİ ML ENDPOINT */}
         <PersonalizedRecommendations
           product={product}
           isAuthenticated={!!user}
@@ -415,6 +328,7 @@ const ProductDetail = () => {
           showSimilar={true}
           autoLoad={true}
           axiosInstance={axiosInstance}
+          useMLEndpoint={true} // Yeni ml-recommendations endpoint'ini kullan
         />
 
         {/* Debug Information */}
@@ -429,12 +343,20 @@ const ProductDetail = () => {
           }}>
             <h4>🔧 Debug Info (Development Only)</h4>
             <div><strong>Product:</strong> {product ? '✅' : '❌'}</div>
+            <div><strong>Product Code:</strong> {product?.code || product?.product_code || 'None'}</div>
             <div><strong>Authenticated:</strong> {user ? '✅' : '❌'}</div>
             <div><strong>Analysis Result:</strong> {analysisResult ? '✅' : '❌'}</div>
-            <div><strong>Nutritional Warnings:</strong> {nutritionalWarnings.length}</div>
-            <div><strong>Nutritional Recommendations:</strong> {nutritionalRecommendations.length}</div>
+            <div><strong>Analysis Type:</strong> {analysisResult?.analysis ? 'Complete' : 'Basic'}</div>
             <div><strong>Resolved Barcode:</strong> {resolvedBarcode || 'None'}</div>
             <div><strong>Auth Token:</strong> {authTokens ? 'Present' : 'Missing'}</div>
+            <div><strong>Backend URLs:</strong> 
+              <div style={{ marginLeft: '10px', fontSize: '11px' }}>
+                <div>Product: /products/detail/{'{code}'}/</div>
+                <div>Analysis: /products/analyze/ (POST)</div>
+                <div>Warnings: /products/warnings-only/ (GET)</div>
+                <div>ML Recommendations: /products/ml-recommendations/ (GET)</div>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -1,2 +1,2 @@
 from .ml_product_score_service import ml_product_score_service
-from .ml_recommendation_service import ml_recommendation_service
+from .recommendation_service import ml_recommendation_service
